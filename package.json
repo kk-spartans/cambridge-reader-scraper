@@ -1,0 +1,30 @@
+{
+  "name": "cambridge-reader-scraper",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "cli": "tsx src/index.ts",
+    "start": "tsx src/index.ts",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "lint": "oxlint --type-aware .",
+    "typecheck": "oxlint --type-aware --type-check ."
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.5.10",
+    "ink": "^6.8.0",
+    "pdfkit": "^0.18.0",
+    "playwright-core": "^1.59.1",
+    "react": "^19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "@types/pdfkit": "^0.17.5",
+    "@types/react": "^19.2.14",
+    "oxfmt": "^0.44.0",
+    "oxlint": "^1.59.0",
+    "oxlint-tsgolint": "^0.20.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
