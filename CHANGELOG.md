@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.1.2...v1.1.3) (2026-04-08)
+
+
+### Bug Fixes
+
+* **release:** upgrade semantic-release stack for npm OIDC publish ([a64d712](https://github.com/kk-spartans/cambridge-reader-scraper/commit/a64d7123266ded974d828c816095afb502b50dcc))
+
 ## [1.1.2](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.1.1...v1.1.2) (2026-04-08)
 
 
