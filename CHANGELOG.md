@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.1.1...v1.1.2) (2026-04-08)
+
+
+### Bug Fixes
+
+* **paths:** use fixed Windows appdata path and macOS-specific lookup ([00ec576](https://github.com/kk-spartans/cambridge-reader-scraper/commit/00ec576cd02af3263b5c5d612adbbf7907671371))
+
 ## [1.1.1](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.1.0...v1.1.1) (2026-04-08)
 
 
