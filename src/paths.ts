@@ -79,8 +79,11 @@ export function resolveUserdataPath(args: CliArgs): string {
   const candidates = inferDefaultUserdataPaths(appName);
 
   for (const candidate of candidates) {
-    const blobRoot = path.join(candidate, "Default", "File System", "000", "p", "00");
-    if (existsSync(blobRoot)) {
+    const blobRootCandidates = [
+      path.join(candidate, "Default", "File System", "000", "p", "00"),
+      path.join(candidate, "User Data", "Default", "File System", "000", "p", "00"),
+    ];
+    if (blobRootCandidates.some((blobRoot) => existsSync(blobRoot))) {
       return candidate;
     }
   }

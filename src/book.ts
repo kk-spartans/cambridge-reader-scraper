@@ -303,8 +303,13 @@ export function extractChaptersFromArchive(buffer: Buffer, book: BookInfo): Chap
 }
 
 export async function discoverBooks(userdataRoot: string): Promise<BookInfo[]> {
-  const blobRoot = path.join(userdataRoot, "Default", "File System", "000", "p", "00");
-  if (!existsSync(blobRoot)) {
+  const blobRootCandidates = [
+    path.join(userdataRoot, "Default", "File System", "000", "p", "00"),
+    path.join(userdataRoot, "User Data", "Default", "File System", "000", "p", "00"),
+  ];
+
+  const blobRoot = blobRootCandidates.find((candidate) => existsSync(candidate));
+  if (!blobRoot) {
     return [];
   }
 
