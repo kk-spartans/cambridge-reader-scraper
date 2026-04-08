@@ -1,10 +1,10 @@
-import { existsSync } from "node:fs";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 
 import { XMLParser } from "fast-xml-parser";
 
 import { entryToUtf8, parseCustomArchive } from "./archive.js";
+import { detectBlobRoots } from "./paths.js";
 import type { BookInfo, BookMetadata, ChapterNode } from "./types.js";
 
 const DEFAULT_VIEWPORT = { width: 957, height: 1199 };
@@ -303,27 +303,27 @@ export function extractChaptersFromArchive(buffer: Buffer, book: BookInfo): Chap
 }
 
 export async function discoverBooks(userdataRoot: string): Promise<BookInfo[]> {
-  const blobRootCandidates = [
-    path.join(userdataRoot, "Default", "File System", "000", "p", "00"),
-    path.join(userdataRoot, "User Data", "Default", "File System", "000", "p", "00"),
-  ];
-
-  const blobRoot = blobRootCandidates.find((candidate) => existsSync(candidate));
-  if (!blobRoot) {
+  const blobRoots = detectBlobRoots(userdataRoot);
+  if (!blobRoots.length) {
     return [];
   }
 
-  const entries = await fs.readdir(blobRoot, { withFileTypes: true });
+  const files = new Set<string>();
+  for (const blobRoot of blobRoots) {
+    const entries = await fs.readdir(blobRoot, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isFile()) {
+        files.add(path.join(blobRoot, entry.name));
+      }
+    }
+  }
 
-  const files = entries
-    .filter((entry) => entry.isFile())
-    .map((entry) => entry.name)
-    .sort((left, right) => left.localeCompare(right));
+  const sortedBlobPaths = Array.from(files).sort((left, right) => left.localeCompare(right));
 
   const books: BookInfo[] = [];
 
-  for (const fileName of files) {
-    const blobPath = path.join(blobRoot, fileName);
+  for (const blobPath of sortedBlobPaths) {
+    const fileName = path.basename(blobPath);
     const stat = await fs.stat(blobPath);
     if (stat.size < 1_000_000) {
       continue;

@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
@@ -79,16 +79,66 @@ export function resolveUserdataPath(args: CliArgs): string {
   const candidates = inferDefaultUserdataPaths(appName);
 
   for (const candidate of candidates) {
-    const blobRootCandidates = [
-      path.join(candidate, "Default", "File System", "000", "p", "00"),
-      path.join(candidate, "User Data", "Default", "File System", "000", "p", "00"),
-    ];
-    if (blobRootCandidates.some((blobRoot) => existsSync(blobRoot))) {
+    if (detectBlobRoots(candidate).length > 0) {
       return candidate;
     }
   }
 
   return candidates[0] ?? path.resolve("userdata");
+}
+
+function listDirectories(root: string): string[] {
+  if (!existsSync(root)) {
+    return [];
+  }
+
+  try {
+    return readdirSync(root, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
+  } catch {
+    return [];
+  }
+}
+
+function listProfileRoots(userdataRoot: string): string[] {
+  const rootsToCheck = [userdataRoot, path.join(userdataRoot, "User Data")];
+  const profileRoots: string[] = [];
+
+  for (const root of rootsToCheck) {
+    const profileCandidates = listDirectories(root)
+      .filter((name) => name === "Default" || name.startsWith("Profile "))
+      .map((name) => path.join(root, name));
+
+    if (profileCandidates.length) {
+      profileRoots.push(...profileCandidates);
+      continue;
+    }
+
+    if (existsSync(path.join(root, "File System"))) {
+      profileRoots.push(root);
+    }
+  }
+
+  return uniquePaths(profileRoots);
+}
+
+export function detectBlobRoots(userdataRoot: string): string[] {
+  const roots: string[] = [];
+
+  for (const profileRoot of listProfileRoots(userdataRoot)) {
+    const fileSystemRoot = path.join(profileRoot, "File System");
+    const partitionDirs = listDirectories(fileSystemRoot).filter((name) => /^\d+$/.test(name));
+
+    for (const partitionDir of partitionDirs) {
+      const candidate = path.join(fileSystemRoot, partitionDir, "p", "00");
+      if (existsSync(candidate)) {
+        roots.push(candidate);
+      }
+    }
+  }
+
+  return uniquePaths(roots);
 }
 
 export function safeFileName(value: string): string {
