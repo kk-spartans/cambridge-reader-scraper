@@ -1,3 +1,10 @@
+## [1.1.4](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.1.3...v1.1.4) (2026-04-08)
+
+
+### Bug Fixes
+
+* ensure dist/ is built before publish/pack ([9c7081f](https://github.com/kk-spartans/cambridge-reader-scraper/commit/9c7081f9122611520c215d18af17b929564c5959))
+
 ## [1.1.3](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.1.2...v1.1.3) (2026-04-08)
 
 
