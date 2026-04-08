@@ -1,4 +1,6 @@
-# cambridge-reader-scraper
+# Cambridge Reader Scraper
+
+Scrapes textbooks from cambridge into a pdf so you don't have to deal with their proprietary app to read them.
 
 ## Usage
 
@@ -16,8 +18,8 @@ Or from [Cambridge](https://www.cambridge.org/go/) for MacOS (not tested).
 5. Run:
 
 ```
-pnpx cambridge-reader-scraper # or
-npx cambridge-reader-scraper
+pnpx playwright install && pnpx cambridge-reader-scraper # or
+npx playwright install && npx cambridge-reader-scraper
 ```
 
 Bun does **not** work well with playwright, so it probably won't work.
