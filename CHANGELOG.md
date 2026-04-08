@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.1.0...v1.1.1) (2026-04-08)
+
+
+### Bug Fixes
+
+* **paths:** auto-detect Cambridge Reader blob storage paths ([d23f2f1](https://github.com/kk-spartans/cambridge-reader-scraper/commit/d23f2f182c9a6ab432c19076eaf64e0be2e0cca9))
+
 # [1.1.0](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.0.0...v1.1.0) (2026-04-08)
 
 
