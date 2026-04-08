@@ -62,6 +62,8 @@ function statusColor(status: ProgressStatus): string {
       return "cyan";
     case "extracting":
       return "yellow";
+    case "processing":
+      return "magenta";
     default:
       return "gray";
   }
@@ -75,6 +77,8 @@ function statusLabel(status: ProgressStatus): string {
       return "extract";
     case "rendering":
       return "render";
+    case "processing":
+      return "process";
     case "done":
       return "done";
     case "error":
@@ -203,7 +207,7 @@ function BookSelection({ books, onSubmit, onCancel }: BookSelectionProps): React
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      <Text color="cyan">Cambridge Reader PDF Builder</Text>
+      <Text color="cyan">Cambridge Reader Scraper</Text>
       <Text>
         Search: <Text color="yellow">{query || "(all books)"}</Text>
       </Text>
@@ -222,7 +226,7 @@ function BookSelection({ books, onSubmit, onCancel }: BookSelectionProps): React
               return (
                 <React.Fragment key={book.isbn}>
                   <Text color={isActive ? "cyan" : "white"}>
-                    {marker} {selectedMarker} {book.isbn} {truncate(book.title, titleWidth)}
+                    {marker} {selectedMarker} {truncate(book.title, titleWidth)}
                   </Text>
                 </React.Fragment>
               );
@@ -294,6 +298,7 @@ function ProgressScreen({
           [update.isbn]: {
             ...previous,
             ...update,
+            completedPages: Math.max(previous.completedPages, update.completedPages),
           },
         };
       });
@@ -391,7 +396,7 @@ export async function runWithInkProgress(params: {
   const { books, run } = params;
 
   if (!process.stdout.isTTY || !process.stdin.isTTY) {
-    return run(() => {});
+    return run(() => { });
   }
 
   return new Promise((resolve, reject) => {

@@ -84,7 +84,7 @@ export type UiBook = {
   blobName: string;
 };
 
-export type ProgressStatus = "queued" | "extracting" | "rendering" | "done" | "error";
+export type ProgressStatus = "queued" | "extracting" | "rendering" | "processing" | "done" | "error";
 
 export type ProgressUpdate = {
   isbn: string;

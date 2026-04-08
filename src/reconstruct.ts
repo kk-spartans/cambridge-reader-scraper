@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { chromium } from "playwright-core";
+import { PDFDocument } from "pdf-lib";
 
 import { extractEntryBuffer, normalizeArchiveRelativePath, parseCustomArchive } from "./archive.js";
 import { extractChaptersFromArchive } from "./book.js";
@@ -113,19 +114,6 @@ export async function extractBookBlob(book: BookInfo, destinationDir: string): P
   }
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
-
-function normalizePageHref(href: string): string {
-  const beforeHash = href.split("#")[0] ?? href;
-  return beforeHash.replaceAll("\\", "/");
-}
-
 function flattenChapterNodes(
   nodes: ChapterNode[],
   depth = 0,
@@ -144,82 +132,11 @@ function flattenChapterNodes(
   return out;
 }
 
-function chapterPageByPath(chapters: ChapterNode[]): Map<string, number> {
-  const map = new Map<string, number>();
-
-  const walk = (nodes: ChapterNode[]) => {
-    for (const node of nodes) {
-      if (node.href && node.pageIndex) {
-        map.set(normalizePageHref(node.href), node.pageIndex);
-      }
-      walk(node.children);
-    }
-  };
-
-  walk(chapters);
-  return map;
-}
-
-function buildPrintBundleHtml(params: {
-  book: BookInfo;
-  chapters: ChapterNode[];
-  chapterPageMap: Map<string, number>;
-}): string {
-  const { book, chapters, chapterPageMap } = params;
-
-  const chapterRows = flattenChapterNodes(chapters)
-    .map((row) => {
-      const indent = row.depth * 18;
-      const page = row.page ? `<span class="toc-page">${row.page}</span>` : "";
-      return `<li style="padding-left:${indent}px"><span>${escapeHtml(row.title)}</span>${page}</li>`;
-    })
-    .join("\n");
-
-  const chapterIntro = chapterRows
-    ? `<section class="frontmatter"><h2>Contents</h2><ol class="toc-list">${chapterRows}</ol></section>`
-    : "";
-
-  const pageSections = book.pagePaths
-    .map((relativePath, index) => {
-      const normalizedPath = normalizePageHref(relativePath);
-      const labelPage = chapterPageMap.get(normalizedPath);
-      const chapterBadge = labelPage
-        ? `<div class="chapter-badge">Chapter starts p.${labelPage}</div>`
-        : "";
-      return `<section class="page" data-page="${index + 1}">${chapterBadge}<iframe src="${escapeHtml(relativePath)}" loading="eager"></iframe></section>`;
-    })
-    .join("\n");
-
-  return `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>${escapeHtml(book.title)}</title>
-    <style>
-      @page { margin: 0; size: ${book.viewport.width}px ${book.viewport.height}px; }
-      html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: "Times New Roman", serif; }
-      .frontmatter { page-break-after: always; min-height: ${book.viewport.height}px; box-sizing: border-box; padding: 48px; }
-      .frontmatter h1 { margin: 0 0 8px; font-size: 34px; }
-      .frontmatter h2 { margin: 18px 0 12px; font-size: 24px; }
-      .frontmatter p { margin: 4px 0; font-size: 14px; color: #333; }
-      .toc-list { margin: 0; padding: 0; list-style: none; }
-      .toc-list li { display: flex; justify-content: space-between; gap: 8px; margin: 4px 0; font-size: 13px; }
-      .toc-page { color: #5a5a5a; min-width: 26px; text-align: right; }
-      .page { position: relative; width: ${book.viewport.width}px; height: ${book.viewport.height}px; page-break-after: always; overflow: hidden; }
-      .page iframe { width: 100%; height: 100%; border: 0; display: block; }
-      .chapter-badge { position: absolute; right: 10px; top: 10px; z-index: 10; background: rgba(255,255,255,.9); border: 1px solid #ddd; border-radius: 999px; padding: 2px 8px; font-size: 11px; color: #444; }
-    </style>
-  </head>
-  <body>
-    <section class="frontmatter">
-      <h1>${escapeHtml(book.title)}</h1>
-      <p>ISBN: ${escapeHtml(book.isbn)}</p>
-      <p>Pages: ${book.pagePaths.length}</p>
-    </section>
-    ${chapterIntro}
-    ${pageSections}
-  </body>
-</html>`;
+function buildChapterKeywords(chapters: ChapterNode[]): string[] {
+  return flattenChapterNodes(chapters)
+    .map((node) => node.title.trim())
+    .filter(Boolean)
+    .slice(0, 80);
 }
 
 export async function renderBookToPdf(params: {
@@ -231,7 +148,7 @@ export async function renderBookToPdf(params: {
   onProgress?: (progress: {
     completedPages: number;
     totalPages: number;
-    status: "rendering" | "done";
+    status: "rendering" | "processing" | "done";
   }) => void;
 }): Promise<void> {
   const {
@@ -263,14 +180,10 @@ export async function renderBookToPdf(params: {
 
   const bookBlobBuffer = await fs.readFile(book.blobPath);
   const chapters = extractChaptersFromArchive(bookBlobBuffer, book);
-  const chapterPageMap = chapterPageByPath(chapters);
-  const printBundleHtml = buildPrintBundleHtml({
-    book,
-    chapters,
-    chapterPageMap,
-  });
-  const printBundlePath = path.join(extractedBookDir, "_print_bundle.html");
-  await fs.writeFile(printBundlePath, printBundleHtml, "utf8");
+  const partialPdfPaths: string[] = [];
+  const tempPdfDir = path.join(extractedBookDir, "_page_pdfs");
+  await fs.rm(tempPdfDir, { recursive: true, force: true });
+  await fs.mkdir(tempPdfDir, { recursive: true });
 
   try {
     onProgress?.({
@@ -279,52 +192,96 @@ export async function renderBookToPdf(params: {
       status: "rendering",
     });
 
-    await page.goto(pathToFileURL(printBundlePath).href, {
-      waitUntil: "domcontentloaded",
-      timeout: navigationTimeoutMs,
-    });
+    for (let index = 0; index < book.pagePaths.length; index += 1) {
+      const relativePagePath = book.pagePaths[index];
+      if (!relativePagePath) {
+        continue;
+      }
 
-    await page.emulateMedia({ media: "print" });
+      const absolutePagePath = path.join(extractedBookDir, ...relativePagePath.split("/"));
+      await page.goto(pathToFileURL(absolutePagePath).href, {
+        waitUntil: "domcontentloaded",
+        timeout: navigationTimeoutMs,
+      });
 
-    await page.evaluate(`
-      (async () => {
-        const wait = (ms) =>
-          new Promise((resolve) => {
-            setTimeout(resolve, ms);
-          });
+      await page.evaluate(`
+        (async () => {
+          const wait = (ms) =>
+            new Promise((resolve) => {
+              setTimeout(resolve, ms);
+            });
 
-        const iframes = Array.from(document.querySelectorAll("iframe"));
-        for (let index = 0; index < iframes.length; index += 1) {
-          const iframe = iframes[index];
-          if (!iframe) {
-            continue;
+          const docRef = globalThis.document;
+          const fonts = docRef?.fonts;
+          if (fonts?.ready) {
+            await Promise.race([fonts.ready, wait(4000)]);
           }
 
-          await Promise.race([
-            new Promise((resolve) => {
-              iframe.addEventListener("load", () => resolve(), { once: true });
-              iframe.addEventListener("error", () => resolve(), { once: true });
-            }),
-            wait(2500),
-          ]);
-        }
-      })();
-    `);
+          const imagePromises = Array.from(docRef?.images ?? []).map((image) => {
+            if (image.complete) {
+              return Promise.resolve();
+            }
+            return Promise.race([
+              new Promise((resolve) => {
+                image.addEventListener("load", () => resolve(), { once: true });
+                image.addEventListener("error", () => resolve(), { once: true });
+              }),
+              wait(2500),
+            ]);
+          });
+
+          await Promise.allSettled(imagePromises);
+        })();
+      `);
+
+      const partialPath = path.join(tempPdfDir, `${String(index + 1).padStart(5, "0")}.pdf`);
+      await page.emulateMedia({ media: "print" });
+      await page.pdf({
+        path: partialPath,
+        printBackground: true,
+        preferCSSPageSize: true,
+        width: `${book.viewport.width}px`,
+        height: `${book.viewport.height}px`,
+        tagged: true,
+        margin: { top: 0, right: 0, bottom: 0, left: 0 },
+        pageRanges: "1",
+      });
+
+      partialPdfPaths.push(partialPath);
+      onProgress?.({
+        completedPages: partialPdfPaths.length,
+        totalPages: book.pagePaths.length,
+        status: "rendering",
+      });
+    }
 
     onProgress?.({
-      completedPages: Math.max(1, Math.floor(book.pagePaths.length / 2)),
+      completedPages: book.pagePaths.length,
       totalPages: book.pagePaths.length,
-      status: "rendering",
+      status: "processing",
     });
 
-    await page.pdf({
-      path: outputPdfPath,
-      printBackground: true,
-      preferCSSPageSize: true,
-      outline: true,
-      tagged: true,
-      margin: { top: 0, right: 0, bottom: 0, left: 0 },
-    });
+    const renderedPdf = await PDFDocument.create();
+    for (const partialPath of partialPdfPaths) {
+      const partialBytes = await fs.readFile(partialPath);
+      const partialDoc = await PDFDocument.load(partialBytes);
+      const copiedPages = await renderedPdf.copyPages(partialDoc, partialDoc.getPageIndices());
+      for (const copiedPage of copiedPages) {
+        renderedPdf.addPage(copiedPage);
+      }
+    }
+
+    renderedPdf.setTitle(book.title);
+    renderedPdf.setAuthor("Cambridge Reader");
+    renderedPdf.setSubject(`ISBN ${book.isbn}`);
+
+    const chapterKeywords = buildChapterKeywords(chapters);
+    if (chapterKeywords.length) {
+      renderedPdf.setKeywords(chapterKeywords);
+    }
+
+    const finalizedPdfBytes = await renderedPdf.save();
+    await fs.writeFile(outputPdfPath, finalizedPdfBytes);
 
     onProgress?.({
       completedPages: book.pagePaths.length,
@@ -332,6 +289,7 @@ export async function renderBookToPdf(params: {
       status: "done",
     });
   } finally {
+    await fs.rm(tempPdfDir, { recursive: true, force: true });
     await page.close();
     await context.close();
     await browser.close();
