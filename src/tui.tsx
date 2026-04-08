@@ -396,7 +396,7 @@ export async function runWithInkProgress(params: {
   const { books, run } = params;
 
   if (!process.stdout.isTTY || !process.stdin.isTTY) {
-    return run(() => { });
+    return run(() => {});
   }
 
   return new Promise((resolve, reject) => {
