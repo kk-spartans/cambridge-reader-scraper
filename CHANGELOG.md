@@ -1,3 +1,11 @@
+# [1.1.0](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.0.0...v1.1.0) (2026-04-08)
+
+
+### Features
+
+* **release:** generate GitHub releases without npm publish ([234acff](https://github.com/kk-spartans/cambridge-reader-scraper/commit/234acff4f1eeb205c941145c3275c22af02ab724))
+* **release:** publish npm package directly and drop pkg binaries ([0223aca](https://github.com/kk-spartans/cambridge-reader-scraper/commit/0223aca151f9be812afde1cb065df5193a63e339))
+
 # 1.0.0 (2026-04-08)
 
 
