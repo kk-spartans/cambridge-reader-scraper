@@ -12,28 +12,11 @@
     [
       "@semantic-release/npm",
       {
-        "npmPublish": false,
+        "npmPublish": true,
         "pkgRoot": "."
       }
     ],
-    [
-      "@semantic-release/exec",
-      {
-        "prepareCmd": "pnpm run build && pnpm run build:pkg",
-        "publishCmd": "npm publish --provenance --access public"
-      }
-    ],
-    [
-      "@semantic-release/github",
-      {
-        "assets": [
-          {
-            "path": "artifacts/*",
-            "label": "pkg executable"
-          }
-        ]
-      }
-    ],
+    ["@semantic-release/github", {}],
     [
       "@semantic-release/git",
       {
