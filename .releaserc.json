@@ -12,14 +12,15 @@
     [
       "@semantic-release/npm",
       {
-        "npmPublish": true,
+        "npmPublish": false,
         "pkgRoot": "."
       }
     ],
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "pnpm run build && pnpm run build:pkg"
+        "prepareCmd": "pnpm run build && pnpm run build:pkg",
+        "publishCmd": "npm publish --provenance --access public"
       }
     ],
     [
