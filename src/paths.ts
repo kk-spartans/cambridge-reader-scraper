@@ -41,18 +41,17 @@ export function inferDefaultUserdataPaths(appNameInput: string): string[] {
   const candidates: string[] = [];
 
   if (process.platform === "win32") {
-    const local = process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local");
+    const localFromHome = path.join(os.homedir(), "AppData", "Local");
+    const local = process.env.LOCALAPPDATA || localFromHome;
+    candidates.push(path.join(localFromHome, "Cambridge Reader", "User Data"));
+    candidates.push(path.join(local, appName, "User Data"));
+    candidates.push(path.join(localFromHome, "Cambridge Reader"));
     candidates.push(path.join(local, appName));
-    candidates.push(path.join(local, compactName));
-    candidates.push(path.join(local, `${appName} Reader`));
-    candidates.push(path.join(local, `${compactName}Reader`));
   }
 
   if (process.platform === "darwin") {
     const library = path.join(os.homedir(), "Library");
     candidates.push(path.join(library, "Application Support", appName));
-    candidates.push(path.join(library, "Application Support", compactName));
-    candidates.push(path.join(library, "Caches", appName));
   }
 
   if (process.platform === "linux") {
@@ -102,7 +101,10 @@ function listDirectories(root: string): string[] {
 }
 
 function listProfileRoots(userdataRoot: string): string[] {
-  const rootsToCheck = [userdataRoot, path.join(userdataRoot, "User Data")];
+  const rootsToCheck =
+    process.platform === "darwin"
+      ? [userdataRoot]
+      : [userdataRoot, path.join(userdataRoot, "User Data")];
   const profileRoots: string[] = [];
 
   for (const root of rootsToCheck) {
