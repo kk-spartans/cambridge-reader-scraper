@@ -18,7 +18,7 @@ Or from [Cambridge](https://www.cambridge.org/go/) for MacOS (not tested).
 5. Run:
 
 ```
-pnpx playwright install && pnpx cambridge-reader-scraper # or
+pnpm dlx playwright install && pnpm dlx cambridge-reader-scraper # or
 npx playwright install && npx cambridge-reader-scraper
 ```
 
