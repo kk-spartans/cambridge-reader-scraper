@@ -1,12 +1,14 @@
 # Cambridge Reader Scraper
 
-Scrapes textbooks from cambridge into a pdf so you don't have to deal with their proprietary app to read them.
+Rebuilds Cambridge Reader books into PDFs so you do not have to keep suffering through their app.
+
+Docs live at <https://kk-spartans.github.io/cambridge-reader-scraper/>.
 
 ## Usage
 
 1. Go to [Cambridge GO](https://www.cambridge.org/go/), and make an account.
 2. Add your book with the 16-char code if you haven't already.
-3. Install cambridge reader:
+3. Install Cambridge Reader:
 
 ```
 winget install CambridgeUniversityPress.CambridgeReader
@@ -15,11 +17,42 @@ winget install CambridgeUniversityPress.CambridgeReader
 Or from [Cambridge](https://www.cambridge.org/go/) for MacOS (not tested).
 
 4. Login to it and download the book you want to scrape.
-5. Run:
+5. Install Playwright Chromium:
 
 ```
-pnpm dlx playwright install && pnpm dlx cambridge-reader-scraper # or
-npx playwright install && npx cambridge-reader-scraper
+pnpm dlx playwright install chromium
+# or
+npx playwright install chromium
+# or
+bunx playwright install chromium
 ```
 
-Bun does **not** work well with playwright, so it probably won't work.
+6. Run the scraper:
+
+```bash
+pnpm dlx cambridge-reader-scraper
+```
+
+```bash
+npx cambridge-reader-scraper
+```
+
+```bash
+bunx cambridge-reader-scraper
+```
+
+If you do not pass `--outdir`, the CLI asks where to save the PDFs and defaults to `out` when you just hit Enter.
+
+## Shell completions
+
+Generate shell completions with:
+
+```bash
+cambridge-reader-scraper completion bash
+cambridge-reader-scraper completion zsh
+cambridge-reader-scraper completion fish
+cambridge-reader-scraper completion powershell
+cambridge-reader-scraper completion xonsh
+```
+
+The full install instructions live in the docs site under `Shell Completions`.

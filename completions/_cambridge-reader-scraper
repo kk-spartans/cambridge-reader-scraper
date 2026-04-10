@@ -1,0 +1,19 @@
+#compdef cambridge-reader-scraper
+
+local -a commands options shells
+commands=('reconstruct:rebuild selected books into PDFs' 'pdf:alias for reconstruct' 'inspect:list detected Cambridge Reader book blobs' 'completion:print a shell completion script' 'help:show CLI help')
+options=('--userdata[path to the Cambridge Reader userdata root]:value:_files' '--app-name[override the app name used for default userdata discovery]:value:_files' '--isbn[limit work to one or more ISBN values]:value:_files' '--outdir[output directory for generated PDFs]:value:_files' '--workdir[temporary extraction directory]:value:_files' '--browser[path to a Playwright Chromium executable]:value:_files' '--page-timeout-ms[page navigation timeout in milliseconds]:value:_files' '--max-pages[render only the first N pages of each book]:value:_files' '--concurrency[number of books to process in parallel]:value:_files' '--keep-extracted[keep extracted book files after rendering]' '--no-tui[disable the interactive selection and progress UI]' '--help[show CLI help]')
+shells=('bash' 'zsh' 'fish' 'powershell' 'xonsh')
+
+if (( CURRENT == 2 )); then
+  _describe 'command' commands
+  _describe 'option' options
+  return 0
+fi
+
+if [[ ${words[2]} == completion ]]; then
+  _values 'shell' bash zsh fish powershell xonsh
+  return 0
+fi
+
+_arguments -s '--userdata[path to the Cambridge Reader userdata root]:value:_files' '--app-name[override the app name used for default userdata discovery]:value:_files' '--isbn[limit work to one or more ISBN values]:value:_files' '--outdir[output directory for generated PDFs]:value:_files' '--workdir[temporary extraction directory]:value:_files' '--browser[path to a Playwright Chromium executable]:value:_files' '--page-timeout-ms[page navigation timeout in milliseconds]:value:_files' '--max-pages[render only the first N pages of each book]:value:_files' '--concurrency[number of books to process in parallel]:value:_files' '--keep-extracted[keep extracted book files after rendering]' '--no-tui[disable the interactive selection and progress UI]' '--help[show CLI help]'
