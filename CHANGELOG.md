@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.2.0...v1.3.0) (2026-04-10)
+
+
+### Features
+
+* **docs:** revamp docs theme and use usage for completion generation ([025cfea](https://github.com/kk-spartans/cambridge-reader-scraper/commit/025cfea07d4d86a7495c38c6015429dee5a2aedd))
+
 # [1.2.0](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.1.4...v1.2.0) (2026-04-10)
 
 
