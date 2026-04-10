@@ -55,13 +55,6 @@ export type BookInfo = {
   hasEncryptedTailMarker: boolean;
 };
 
-export type RenderProgress = {
-  completedPages: number;
-  totalPages: number;
-  status: "extracting" | "rendering" | "done";
-  message?: string;
-};
-
 export type BookRunResult = {
   isbn: string;
   title: string;

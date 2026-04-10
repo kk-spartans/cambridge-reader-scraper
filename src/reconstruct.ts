@@ -93,7 +93,7 @@ export function detectPlaywrightBrowserExecutable(): string {
   );
 }
 
-export async function extractBookBlob(book: BookInfo, destinationDir: string): Promise<void> {
+async function extractBookBlob(book: BookInfo, destinationDir: string): Promise<void> {
   await fs.rm(destinationDir, { recursive: true, force: true });
   await fs.mkdir(destinationDir, { recursive: true });
 
@@ -139,7 +139,7 @@ function buildChapterKeywords(chapters: ChapterNode[]): string[] {
     .slice(0, 80);
 }
 
-export async function renderBookToPdf(params: {
+async function renderBookToPdf(params: {
   extractedBookDir: string;
   book: BookInfo;
   browserExecutablePath: string;

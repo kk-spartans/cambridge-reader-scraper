@@ -1,3 +1,4 @@
+import * as readline from "node:readline/promises";
 import * as path from "node:path";
 
 import { discoverBooks } from "./book.js";
@@ -8,6 +9,7 @@ import {
   hasFlag,
   parseArgs,
 } from "./cli.js";
+import { CLI_NAME, isCompletionShell, renderCompletion, renderHelp } from "./meta.js";
 import { resolveUserdataPath } from "./paths.js";
 import { detectPlaywrightBrowserExecutable, runReconstruction } from "./reconstruct.js";
 import { runWithInkProgress, selectBooksWithInk } from "./tui.js";
@@ -75,7 +77,7 @@ async function runReconstructCommand(args: CliArgs, books: BookInfo[]): Promise<
     throw new Error("No books found to reconstruct.");
   }
 
-  const outDir = path.resolve(getStringArg(args, "outdir", "out") ?? "out");
+  const outDir = await resolveOutputDirectory(args);
   const tempRoot = path.resolve(
     getStringArg(args, "workdir", path.join(outDir, "_extracted")) ??
       path.join(outDir, "_extracted"),
@@ -136,9 +138,52 @@ async function runReconstructCommand(args: CliArgs, books: BookInfo[]): Promise<
   }
 }
 
+async function resolveOutputDirectory(args: CliArgs): Promise<string> {
+  const explicit = getStringArg(args, "outdir");
+  if (explicit) {
+    return path.resolve(explicit);
+  }
+
+  if (!process.stdout.isTTY || !process.stdin.isTTY) {
+    return path.resolve("out");
+  }
+
+  const prompt = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  try {
+    const answer = await prompt.question("Output folder [out]: ");
+    return path.resolve(answer.trim() || "out");
+  } finally {
+    prompt.close();
+  }
+}
+
+function printHelp(): void {
+  console.log(renderHelp());
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const command = args._[0] ?? "reconstruct";
+
+  if (hasFlag(args, "help") || command === "help") {
+    printHelp();
+    return;
+  }
+
+  if (command === "completion") {
+    const shell = args._[1];
+    if (!shell || !isCompletionShell(shell)) {
+      throw new Error(`Unknown shell. Use one of: bash, zsh, fish, powershell, xonsh.`);
+    }
+
+    console.log(renderCompletion(shell));
+    return;
+  }
+
   const userdataRoot = resolveUserdataPath(args);
   const books = await discoverBooks(userdataRoot);
 
@@ -152,11 +197,14 @@ async function main(): Promise<void> {
     return;
   }
 
-  throw new Error(`Unknown command: ${command}. Use 'inspect' or 'reconstruct'.`);
+  throw new Error(
+    `Unknown command: ${command}. Use 'inspect', 'reconstruct', 'pdf', 'completion', or 'help'.`,
+  );
 }
 
 main().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`Error: ${message}`);
+  console.error(`Run '${CLI_NAME} --help' for usage.`);
   process.exitCode = 1;
 });

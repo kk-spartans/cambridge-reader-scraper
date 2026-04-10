@@ -33,7 +33,7 @@ function sanitizeAppDataName(name: string): string {
   return name.replace(/[^a-zA-Z0-9 _.-]/g, "").trim();
 }
 
-export function inferDefaultUserdataPaths(appNameInput: string): string[] {
+function inferDefaultUserdataPaths(appNameInput: string): string[] {
   const appNameRaw = appNameInput.trim() || "Cambridge Reader";
   const appName = sanitizeAppDataName(appNameRaw) || "Cambridge Reader";
   const compactName = appName.replace(/[\s_-]+/g, "");

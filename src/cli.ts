@@ -27,6 +27,11 @@ export function parseArgs(argv: string[]): CliArgs {
       continue;
     }
 
+    if (token === "-h" || token === "-?") {
+      appendValue("help", true);
+      continue;
+    }
+
     if (!token.startsWith("--")) {
       out._.push(token);
       continue;
@@ -74,7 +79,7 @@ export function getStringListArg(args: CliArgs, key: string): string[] {
   return [value];
 }
 
-export function getNumberArg(args: CliArgs, key: string): number | undefined {
+function getNumberArg(args: CliArgs, key: string): number | undefined {
   const raw = getStringArg(args, key);
   if (!raw) {
     return undefined;
