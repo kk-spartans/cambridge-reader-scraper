@@ -1,0 +1,47 @@
+---
+title: CLI Reference
+description: Commands, options, and behavior in one place.
+---
+
+## Commands
+
+| Command              | What it does                                         |
+| -------------------- | ---------------------------------------------------- |
+| `reconstruct`        | Rebuild selected books into PDFs.                    |
+| `pdf`                | Alias for `reconstruct`.                             |
+| `inspect`            | Print detected book metadata without rendering PDFs. |
+| `completion <shell>` | Print a completion script for the selected shell.    |
+| `help`               | Show the CLI help output.                            |
+
+## Options
+
+| Option                   | Description                                                   |
+| ------------------------ | ------------------------------------------------------------- |
+| `--userdata <path>`      | Override the Cambridge Reader userdata root.                  |
+| `--app-name <name>`      | Override the app name used during default userdata discovery. |
+| `--isbn <isbn>`          | Restrict work to one or more specific ISBNs.                  |
+| `--outdir <path>`        | Write PDFs to this folder and skip the output-folder prompt.  |
+| `--workdir <path>`       | Override the temporary extraction directory.                  |
+| `--browser <path>`       | Use a specific Playwright Chromium executable.                |
+| `--page-timeout-ms <ms>` | Set the per-page navigation timeout.                          |
+| `--max-pages <count>`    | Render only the first N pages of each selected book.          |
+| `--concurrency <count>`  | Process multiple books in parallel.                           |
+| `--keep-extracted`       | Keep extracted book files after rendering.                    |
+| `--no-tui`               | Disable the TUI and process everything non-interactively.     |
+| `--help` / `-h`          | Print help output.                                            |
+
+## Exit behavior
+
+- A successful run exits with code `0`.
+- Failures return a non-zero exit code.
+- `Ctrl+C` exits the TUI immediately.
+
+## Completion command
+
+```bash
+cambridge-reader-scraper completion bash
+cambridge-reader-scraper completion zsh
+cambridge-reader-scraper completion fish
+cambridge-reader-scraper completion powershell
+cambridge-reader-scraper completion xonsh
+```

@@ -1,0 +1,82 @@
+---
+title: Getting Started
+description: Install the CLI, prep Playwright, and export your first PDF.
+---
+
+`cambridge-reader-scraper` inspects local Cambridge Reader data and rebuilds selected books into PDFs.
+
+## Prerequisites
+
+1. Install the Cambridge Reader desktop app and download the book you want.
+2. Log in once so the app stores its local data.
+3. Install a Chromium build for Playwright.
+
+## Install the CLI
+
+Use whichever package manager you actually want:
+
+```bash
+pnpm add -g cambridge-reader-scraper
+```
+
+```bash
+npm install -g cambridge-reader-scraper
+```
+
+```bash
+bun add -g cambridge-reader-scraper
+```
+
+If you do not want a global install, just use an exec runner:
+
+```bash
+pnpm dlx cambridge-reader-scraper
+```
+
+```bash
+npx cambridge-reader-scraper
+```
+
+```bash
+bunx cambridge-reader-scraper
+```
+
+## Install Playwright Chromium
+
+```bash
+pnpm dlx playwright install chromium
+```
+
+```bash
+npx playwright install chromium
+```
+
+```bash
+bunx playwright install chromium
+```
+
+## First run
+
+```bash
+cambridge-reader-scraper
+```
+
+When you do not pass `--outdir`, the CLI prompts once for the output folder. Press Enter to accept the default `out` directory.
+
+## Bun quick start
+
+```bash
+bunx playwright install chromium
+bunx cambridge-reader-scraper
+```
+
+Yep, Bun works fine here.
+
+## Next steps
+
+<Cards>
+  <Card title="Usage guide" href="/docs/usage" />
+  <Card title="Shell completions" href="/docs/shell-completions" />
+  <Card title="CLI reference" href="/docs/cli-reference" />
+  <Card title="Troubleshooting" href="/docs/troubleshooting" />
+</Cards>

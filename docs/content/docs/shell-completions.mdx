@@ -1,0 +1,92 @@
+---
+title: Shell Completions
+description: Install generated completions for Bash, Zsh, Fish, PowerShell, and Xonsh.
+---
+
+The CLI can print its own completion script:
+
+```bash
+cambridge-reader-scraper completion <shell>
+```
+
+Supported shells: `bash`, `zsh`, `fish`, `powershell`, `xonsh`.
+
+## Bash
+
+```bash
+mkdir -p ~/.local/share/bash-completion/completions
+cambridge-reader-scraper completion bash > ~/.local/share/bash-completion/completions/cambridge-reader-scraper
+```
+
+Reload your shell, or run:
+
+```bash
+source ~/.local/share/bash-completion/completions/cambridge-reader-scraper
+```
+
+## Zsh
+
+```bash
+mkdir -p ~/.zsh/completions
+cambridge-reader-scraper completion zsh > ~/.zsh/completions/_cambridge-reader-scraper
+```
+
+Add this to your `.zshrc` if you do not already load that directory:
+
+```bash
+fpath=(~/.zsh/completions $fpath)
+autoload -Uz compinit && compinit
+```
+
+## Fish
+
+```bash
+mkdir -p ~/.config/fish/completions
+cambridge-reader-scraper completion fish > ~/.config/fish/completions/cambridge-reader-scraper.fish
+```
+
+Fish loads it automatically in new shells.
+
+## PowerShell
+
+```powershell
+$completionDir = Split-Path -Parent $PROFILE
+New-Item -ItemType Directory -Force -Path $completionDir | Out-Null
+cambridge-reader-scraper completion powershell | Out-File -Encoding utf8 "$completionDir/cambridge-reader-scraper.ps1"
+Add-Content $PROFILE ". `"$completionDir/cambridge-reader-scraper.ps1`""
+```
+
+Restart PowerShell or reload the profile:
+
+```powershell
+. $PROFILE
+```
+
+## Xonsh
+
+```bash
+mkdir -p ~/.config/xonsh/completions
+cambridge-reader-scraper completion xonsh > ~/.config/xonsh/completions/cambridge-reader-scraper.xsh
+```
+
+Load it from `~/.xonshrc`:
+
+```python
+source ~/.config/xonsh/completions/cambridge-reader-scraper.xsh
+```
+
+## Bun / npm / pnpm exec users
+
+If you do not install the package globally, generate completions with the matching runner:
+
+```bash
+pnpm dlx cambridge-reader-scraper completion fish
+```
+
+```bash
+npx cambridge-reader-scraper completion zsh
+```
+
+```bash
+bunx cambridge-reader-scraper completion bash
+```

@@ -1,0 +1,78 @@
+---
+title: Usage
+description: Inspect blobs, pick books, and control how PDFs are rendered.
+---
+
+## Main commands
+
+```bash
+cambridge-reader-scraper inspect
+cambridge-reader-scraper reconstruct
+cambridge-reader-scraper pdf
+```
+
+`pdf` is just an alias for `reconstruct`.
+
+## Inspect local books
+
+```bash
+cambridge-reader-scraper inspect
+```
+
+This prints every detected book blob, its ISBN, title, viewport size, and archive details.
+
+## Reconstruct PDFs
+
+```bash
+cambridge-reader-scraper reconstruct
+```
+
+By default the CLI:
+
+1. Detects Cambridge Reader userdata automatically.
+2. Opens the TUI when stdin/stdout are interactive.
+3. Prompts for the output folder if `--outdir` is missing.
+4. Renders selected books into PDFs.
+
+## Useful examples
+
+Render a specific ISBN:
+
+```bash
+cambridge-reader-scraper reconstruct --isbn 9781000000000
+```
+
+Disable the TUI for scripting:
+
+```bash
+cambridge-reader-scraper reconstruct --no-tui --outdir ./pdfs
+```
+
+Limit pages while debugging:
+
+```bash
+cambridge-reader-scraper reconstruct --max-pages 10 --keep-extracted
+```
+
+Use a custom Cambridge Reader userdata folder:
+
+```bash
+cambridge-reader-scraper inspect --userdata ./userdata
+```
+
+## Output folder prompt
+
+If you do not pass `--outdir`, the CLI asks:
+
+```text
+Output folder [out]:
+```
+
+Press Enter to keep `out`, or type another path.
+
+## Bun examples
+
+```bash
+bunx cambridge-reader-scraper inspect
+bunx cambridge-reader-scraper reconstruct --outdir ./pdfs
+```

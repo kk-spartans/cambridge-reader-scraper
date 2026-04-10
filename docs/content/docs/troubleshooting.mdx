@@ -1,0 +1,59 @@
+---
+title: Troubleshooting
+description: Common issues and the fixes that usually matter.
+---
+
+## No books are detected
+
+Run:
+
+```bash
+cambridge-reader-scraper inspect
+```
+
+If nothing appears, make sure Cambridge Reader has downloaded the book locally. You can also point the CLI at a custom folder:
+
+```bash
+cambridge-reader-scraper inspect --userdata ./userdata
+```
+
+## Playwright browser not found
+
+Install Chromium for Playwright:
+
+```bash
+pnpm dlx playwright install chromium
+```
+
+```bash
+npx playwright install chromium
+```
+
+```bash
+bunx playwright install chromium
+```
+
+Or pass an explicit path with `--browser`.
+
+## I want a non-interactive script run
+
+Use `--no-tui` and pass `--outdir` to skip the prompt:
+
+```bash
+cambridge-reader-scraper reconstruct --no-tui --outdir ./pdfs
+```
+
+## Bun support
+
+Bun works here. Use:
+
+```bash
+bunx playwright install chromium
+bunx cambridge-reader-scraper
+```
+
+## Shell completion is not loading
+
+1. Make sure you wrote the completion file to the right shell-specific directory.
+2. Reload your shell config.
+3. Re-run `cambridge-reader-scraper completion <shell>` after upgrading the CLI.

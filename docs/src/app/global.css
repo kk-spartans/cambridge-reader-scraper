@@ -1,0 +1,42 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+:root {
+  --font-sans: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  background:
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 32%),
+    radial-gradient(circle at 80% 16%, rgba(192, 132, 252, 0.18), transparent 24%),
+    linear-gradient(180deg, #020617 0%, #020617 100%);
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.28);
+}
+
+a {
+  text-underline-offset: 0.2em;
+}
+
+pre {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 20px 45px rgba(2, 6, 23, 0.35);
+}
+
+code,
+pre {
+  font-family: var(--font-mono);
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}

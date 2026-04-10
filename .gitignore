@@ -15,6 +15,11 @@ playwright/.cache/
 **/.DS_Store
 dist
 *.tgz
+docs/.next
+docs/.source
+docs/out
+.vercel
+.mise.local.toml
 
 # code coverage
 coverage
