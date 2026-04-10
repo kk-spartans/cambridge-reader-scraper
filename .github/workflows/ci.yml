@@ -2,9 +2,43 @@ name: CI
 
 on:
   push:
-    branches:
-      - "**"
+    paths:
+      - "src/**"
+      - "bin/**"
+      - "package.json"
+      - "tsconfig.json"
+      - "tsconfig.build.json"
+      - ".gitignore"
+      - ".oxfmtrc.json"
+      - ".oxlintrc.json"
+      - ".releaserc.json"
+      - ".codespellrc"
+      - ".github/codespell-requirements.txt"
+      - ".github/dependabot.yml"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/release.yml"
+      - "knip.json"
+      - "mise.toml"
+      - "UNLICENSE"
   pull_request:
+    paths:
+      - "src/**"
+      - "bin/**"
+      - "package.json"
+      - "tsconfig.json"
+      - "tsconfig.build.json"
+      - ".gitignore"
+      - ".oxfmtrc.json"
+      - ".oxlintrc.json"
+      - ".releaserc.json"
+      - ".codespellrc"
+      - ".github/codespell-requirements.txt"
+      - ".github/dependabot.yml"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/release.yml"
+      - "knip.json"
+      - "mise.toml"
+      - "UNLICENSE"
 
 jobs:
   quality:
@@ -15,29 +49,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+      - name: Setup mise
+        uses: jdx/mise-action@v4
         with:
-          version: 9.15.9
+          version: latest
+          install: true
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - name: Setup uv cache
+        uses: astral-sh/setup-uv@v7
         with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+          enable-cache: true
+          cache-dependency-glob: .github/codespell-requirements.txt
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: mise run install
 
       - name: Check formatting
-        run: pnpm run format:check
+        run: mise run format-check
 
       - name: Lint
-        run: pnpm run lint
+        run: mise run lint
 
       - name: Type check
-        run: pnpm run typecheck
+        run: mise run typecheck
 
       - name: Build package
-        run: pnpm run build
+        run: mise run build
+
+      - name: Check dead code
+        run: mise run knip
+
+      - name: Run codespell
+        run: mise run codespell -- --config .codespellrc --check-filenames --check-hidden .

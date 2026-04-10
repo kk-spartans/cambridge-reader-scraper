@@ -1,0 +1,2 @@
+[codespell]
+skip = .git,node_modules,dist,.next,.source,out,*.tsbuildinfo,pnpm-lock.yaml

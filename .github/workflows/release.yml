@@ -5,6 +5,22 @@ on:
     branches:
       - main
       - master
+    paths:
+      - "src/**"
+      - "bin/**"
+      - "package.json"
+      - "tsconfig.json"
+      - "tsconfig.build.json"
+      - ".gitignore"
+      - ".oxfmtrc.json"
+      - ".oxlintrc.json"
+      - ".releaserc.json"
+      - ".codespellrc"
+      - ".github/codespell-requirements.txt"
+      - ".github/workflows/release.yml"
+      - "knip.json"
+      - "mise.toml"
+      - "UNLICENSE"
   workflow_dispatch:
 
 permissions:
@@ -24,21 +40,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+      - name: Setup mise
+        uses: jdx/mise-action@v4
         with:
-          version: 9.15.9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+          version: latest
+          install: true
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: mise run install
 
       - name: Run semantic-release
         env:

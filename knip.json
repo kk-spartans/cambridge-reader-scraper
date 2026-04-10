@@ -1,0 +1,20 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": [".releaserc.json"],
+      "project": ["src/**/*.{ts,tsx}", "bin/**/*.js", ".releaserc.json"],
+      "ignoreDependencies": [
+        "@semantic-release/commit-analyzer",
+        "@semantic-release/github",
+        "@semantic-release/npm",
+        "@semantic-release/release-notes-generator"
+      ]
+    },
+    "docs": {
+      "entry": ["source.config.ts"],
+      "project": ["src/**/*.{ts,tsx}"],
+      "ignoreDependencies": ["tailwindcss"]
+    }
+  }
+}

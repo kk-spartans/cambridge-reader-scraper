@@ -1,0 +1,77 @@
+min_version = "2026.4.4"
+
+[env]
+_.path = ["./node_modules/.bin", "./docs/node_modules/.bin"]
+
+[tools]
+node = "latest"
+pnpm = "latest"
+bun = "latest"
+uv = "latest"
+
+[tasks.install]
+description = "Install workspace dependencies"
+sources = ["package.json", "docs/package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"]
+outputs = ["node_modules/.modules.yaml", "docs/.source/index.ts"]
+run = "pnpm install --frozen-lockfile"
+
+[tasks.format]
+description = "Format the workspace"
+depends = ["install"]
+run = "pnpm run format"
+
+[tasks.format-check]
+description = "Check workspace formatting"
+depends = ["install"]
+run = "pnpm run format:check"
+
+[tasks.lint]
+description = "Lint the workspace with oxlint"
+depends = ["install"]
+run = "pnpm run lint"
+
+[tasks.typecheck]
+description = "Type-check the workspace"
+depends = ["install"]
+run = "pnpm run typecheck"
+
+[tasks.build]
+description = "Build the CLI package"
+depends = ["install"]
+sources = ["src/**/*", "bin/**/*", "tsconfig.json", "tsconfig.build.json", "package.json"]
+outputs = ["dist/index.js"]
+run = "pnpm run build"
+
+[tasks.docs-lint]
+description = "Lint the docs app"
+depends = ["install"]
+run = "pnpm --dir docs run lint"
+
+[tasks.docs-typecheck]
+description = "Type-check the docs app"
+depends = ["install"]
+run = "pnpm --dir docs run typecheck"
+
+[tasks.docs-build]
+description = "Build the docs app"
+depends = ["install"]
+sources = ["docs/**/*", "pnpm-lock.yaml", "pnpm-workspace.yaml"]
+outputs = ["docs/out/index.html"]
+run = "pnpm run docs:build"
+
+[tasks.knip]
+description = "Check for unused files and exports"
+depends = ["install"]
+run = "pnpm run knip"
+
+[tasks.codespell]
+description = "Run codespell via uv"
+run = "uvx --from codespell==2.4.2 codespell"
+
+[tasks.ci]
+description = "Run the main CLI CI checks"
+depends = ["format-check", "lint", "typecheck", "build", "knip", "codespell"]
+
+[tasks.docs-ci]
+description = "Run the docs CI checks"
+depends = ["docs-lint", "docs-typecheck", "docs-build", "codespell"]
