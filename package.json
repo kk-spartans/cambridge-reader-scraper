@@ -1,6 +1,6 @@
 {
   "name": "cambridge-reader-scraper",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "description": "CLI to inspect and reconstruct Cambridge Reader books",
   "license": "Unlicense",
   "repository": {

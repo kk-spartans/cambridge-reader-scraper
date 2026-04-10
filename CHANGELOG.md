@@ -1,3 +1,16 @@
+# [1.2.0](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.1.4...v1.2.0) (2026-04-10)
+
+
+### Bug Fixes
+
+* **ci:** pin mise version in workflows ([69dafbf](https://github.com/kk-spartans/cambridge-reader-scraper/commit/69dafbf86134b7bb1b5460a569a6eeeeeef7c167))
+
+
+### Features
+
+* **cli:** add output prompt and shell completion command ([2b45660](https://github.com/kk-spartans/cambridge-reader-scraper/commit/2b4566026fade7ed5c0186eedb64697192ea1374))
+* **docs:** add fumadocs site and github pages deployment ([73bb88d](https://github.com/kk-spartans/cambridge-reader-scraper/commit/73bb88d25747ad2255820a007816fb94a2d86f4a))
+
 ## [1.1.4](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.1.3...v1.1.4) (2026-04-08)
 
 
