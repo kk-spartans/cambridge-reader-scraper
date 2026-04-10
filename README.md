@@ -42,17 +42,3 @@ bunx cambridge-reader-scraper
 ```
 
 If you do not pass `--outdir`, the CLI asks where to save the PDFs and defaults to `out` when you just hit Enter.
-
-## Shell completions
-
-Generate shell completions with:
-
-```bash
-cambridge-reader-scraper completion bash
-cambridge-reader-scraper completion zsh
-cambridge-reader-scraper completion fish
-cambridge-reader-scraper completion powershell
-cambridge-reader-scraper completion xonsh
-```
-
-The full install instructions live in the docs site under `Shell Completions`.

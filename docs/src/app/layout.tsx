@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { IBM_Plex_Sans, JetBrains_Mono } from "next/font/google";
 import { Provider } from "@/components/provider";
 import { appName, siteUrl } from "@/lib/shared";
 import "./global.css";
 
-const sans = Space_Grotesk({
+const sans = IBM_Plex_Sans({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
 });
 
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
 
 export default function Layout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${sans.variable} ${mono.variable} dark`} suppressHydrationWarning>
       <body className="flex min-h-screen flex-col font-[family:var(--font-sans)] antialiased">
         <Provider>{children}</Provider>
       </body>

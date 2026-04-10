@@ -1,0 +1,30 @@
+name "Cambridge Reader Scraper"
+bin "cambridge-reader-scraper"
+about "Rebuild Cambridge Reader books into PDFs"
+
+flag "-h --help" help="show CLI help" global=#true
+flag "--userdata <path>" help="path to the Cambridge Reader userdata root" global=#true
+flag "--app-name <name>" help="override the app name used for default userdata discovery" global=#true
+flag "--isbn <isbn>" help="limit work to one or more ISBN values" global=#true var=#true
+flag "--outdir <path>" help="output directory for generated PDFs" global=#true
+flag "--workdir <path>" help="temporary extraction directory" global=#true
+flag "--browser <path>" help="path to a Playwright Chromium executable" global=#true
+flag "--page-timeout-ms <ms>" help="page navigation timeout in milliseconds" global=#true
+flag "--max-pages <count>" help="render only the first N pages of each book" global=#true
+flag "--concurrency <count>" help="number of books to process in parallel" global=#true
+flag "--keep-extracted" help="keep extracted book files after rendering" global=#true
+flag "--no-tui" help="disable the interactive selection and progress UI" global=#true
+
+cmd "reconstruct" help="rebuild selected books into PDFs" {
+  alias "pdf"
+}
+
+cmd "inspect" help="list detected Cambridge Reader book blobs"
+
+cmd "completion" help="print a shell completion script" {
+  arg "<shell>" {
+    choices "bash" "zsh" "fish" "powershell" "xonsh"
+  }
+}
+
+cmd "help" help="show CLI help"

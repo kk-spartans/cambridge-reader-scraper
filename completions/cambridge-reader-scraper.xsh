@@ -1,7 +1,7 @@
 def _complete_cambridge_reader_scraper(prefix, line, begidx, endidx, ctx=None):
-    commands = ["reconstruct", "pdf", "inspect", "completion", "help"]
-    options = ["--userdata", "--app-name", "--isbn", "--outdir", "--workdir", "--browser", "--page-timeout-ms", "--max-pages", "--concurrency", "--keep-extracted", "--no-tui", "--help"]
-    shells = ["bash", "zsh", "fish", "powershell", "xonsh"]
+    commands = ["reconstruct","pdf","inspect","completion","help"]
+    options = ["--userdata","--app-name","--isbn","--outdir","--workdir","--browser","--page-timeout-ms","--max-pages","--concurrency","--keep-extracted","--no-tui","--help"]
+    shells = ["bash","zsh","fish","powershell","xonsh"]
     tokens = line[:endidx].split()
 
     if len(tokens) <= 1:
@@ -14,3 +14,4 @@ def _complete_cambridge_reader_scraper(prefix, line, begidx, endidx, ctx=None):
 
 
 completer add cambridge_reader_scraper _complete_cambridge_reader_scraper end
+

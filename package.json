@@ -27,6 +27,8 @@
     "docs:build": "pnpm --dir docs run build",
     "docs:start": "pnpm --dir docs run start",
     "docs:typecheck": "pnpm --dir docs run typecheck",
+    "completions:generate": "usage generate completion bash cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/cambridge-reader-scraper.bash && usage generate completion zsh cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/_cambridge-reader-scraper && usage generate completion fish cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/cambridge-reader-scraper.fish && usage generate completion powershell cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/cambridge-reader-scraper.ps1 && tsx src/index.ts completion xonsh > completions/cambridge-reader-scraper.xsh",
+    "completions:check": "usage generate completion bash cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/cambridge-reader-scraper.bash && usage generate completion zsh cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/_cambridge-reader-scraper && usage generate completion fish cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/cambridge-reader-scraper.fish && usage generate completion powershell cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/cambridge-reader-scraper.ps1 && tsx src/index.ts completion xonsh > completions/cambridge-reader-scraper.xsh && git diff --exit-code -- completions",
     "prepack": "pnpm run build",
     "prepublishOnly": "pnpm run build",
     "release": "semantic-release",

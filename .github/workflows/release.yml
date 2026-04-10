@@ -8,6 +8,8 @@ on:
     paths:
       - "src/**"
       - "bin/**"
+      - "completions/**"
+      - "cambridge-reader-scraper.usage.kdl"
       - "package.json"
       - "tsconfig.json"
       - "tsconfig.build.json"

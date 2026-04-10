@@ -3,37 +3,74 @@
 @import "fumadocs-ui/css/preset.css";
 
 :root {
-  --font-sans: "Space Grotesk", sans-serif;
+  --font-sans: "IBM Plex Sans", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
+  --color-fd-background: hsl(0 0% 0%);
+  --color-fd-foreground: hsl(0 0% 95%);
+  --color-fd-muted: hsl(0 0% 7%);
+  --color-fd-muted-foreground: hsl(0 0% 66%);
+  --color-fd-popover: hsl(0 0% 4%);
+  --color-fd-popover-foreground: hsl(0 0% 90%);
+  --color-fd-card: hsl(0 0% 3%);
+  --color-fd-card-foreground: hsl(0 0% 94%);
+  --color-fd-border: hsl(0 0% 18% / 0.75);
+  --color-fd-primary: hsl(0 0% 94%);
+  --color-fd-primary-foreground: hsl(0 0% 4%);
+  --color-fd-secondary: hsl(0 0% 10%);
+  --color-fd-secondary-foreground: hsl(0 0% 92%);
+  --color-fd-accent: hsl(0 0% 13%);
+  --color-fd-accent-foreground: hsl(0 0% 94%);
+  --color-fd-ring: hsl(0 0% 54%);
+  --color-fd-overlay: hsl(0 0% 0% / 0.75);
 }
 
 html {
+  background: #000;
   scrollbar-gutter: stable;
 }
 
 body {
-  background:
-    radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 32%),
-    radial-gradient(circle at 80% 16%, rgba(192, 132, 252, 0.18), transparent 24%),
-    linear-gradient(180deg, #020617 0%, #020617 100%);
+  background: #000;
+  color: hsl(0 0% 95%);
 }
 
 ::selection {
-  background: rgba(34, 211, 238, 0.28);
+  background: hsl(0 0% 92% / 0.3);
 }
 
 a {
+  color: hsl(0 0% 94%);
   text-underline-offset: 0.2em;
 }
 
 pre {
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  box-shadow: 0 20px 45px rgba(2, 6, 23, 0.35);
+  border: 1px solid hsl(0 0% 20% / 0.8);
+  box-shadow: none;
 }
 
 code,
 pre {
   font-family: var(--font-mono);
+}
+
+#nd-home-layout,
+#nd-docs-layout,
+#nd-notebook-layout,
+#nd-flux-layout {
+  background: transparent;
+}
+
+#nd-sidebar {
+  border-inline-end: 1px solid hsl(0 0% 18% / 0.75);
+}
+
+header {
+  border-bottom: 1px solid hsl(0 0% 14% / 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.prose :where(a):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  text-decoration-color: hsl(0 0% 46%);
 }
 
 html > body[data-scroll-locked] {

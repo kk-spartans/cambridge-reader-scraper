@@ -8,6 +8,7 @@ node = "latest"
 pnpm = "latest"
 bun = "latest"
 uv = "latest"
+usage = "3.2.0"
 
 [tasks.install]
 description = "Install workspace dependencies"
@@ -41,6 +42,30 @@ depends = ["install"]
 sources = ["src/**/*", "bin/**/*", "tsconfig.json", "tsconfig.build.json", "package.json"]
 outputs = ["dist/index.js"]
 run = "pnpm run build"
+
+[tasks.completions-generate]
+description = "Generate shell completion files"
+depends = ["install"]
+sources = [
+  "cambridge-reader-scraper.usage.kdl",
+  "src/meta.ts",
+  "src/index.ts",
+  "src/cli.ts",
+  "package.json",
+]
+outputs = [
+  "completions/cambridge-reader-scraper.bash",
+  "completions/_cambridge-reader-scraper",
+  "completions/cambridge-reader-scraper.fish",
+  "completions/cambridge-reader-scraper.ps1",
+  "completions/cambridge-reader-scraper.xsh",
+]
+run = "usage generate completion bash cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/cambridge-reader-scraper.bash && usage generate completion zsh cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/_cambridge-reader-scraper && usage generate completion fish cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/cambridge-reader-scraper.fish && usage generate completion powershell cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/cambridge-reader-scraper.ps1 && tsx src/index.ts completion xonsh > completions/cambridge-reader-scraper.xsh"
+
+[tasks.completions-check]
+description = "Verify committed completions are current"
+depends = ["completions-generate"]
+run = "git diff --exit-code -- completions"
 
 [tasks.docs-lint]
 description = "Lint the docs app"

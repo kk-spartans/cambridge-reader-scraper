@@ -5,6 +5,8 @@ on:
     paths:
       - "src/**"
       - "bin/**"
+      - "completions/**"
+      - "cambridge-reader-scraper.usage.kdl"
       - "package.json"
       - "tsconfig.json"
       - "tsconfig.build.json"
@@ -24,6 +26,8 @@ on:
     paths:
       - "src/**"
       - "bin/**"
+      - "completions/**"
+      - "cambridge-reader-scraper.usage.kdl"
       - "package.json"
       - "tsconfig.json"
       - "tsconfig.build.json"
@@ -75,6 +79,9 @@ jobs:
 
       - name: Build package
         run: mise run build
+
+      - name: Check generated completions
+        run: mise run completions-check
 
       - name: Check dead code
         run: mise run knip
