@@ -1,5 +1,5 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
-import { appName, gitConfig } from "./shared";
+import { appName } from "./shared";
 
 export function baseOptions(): BaseLayoutProps {
   return {

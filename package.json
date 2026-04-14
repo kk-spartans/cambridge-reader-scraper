@@ -20,7 +20,7 @@
     "access": "public"
   },
   "scripts": {
-    "dev": "turbo run dev:cli dev:docs --parallel",
+    "dev": "turbo run dev:cli dev:docs",
     "dev:cli": "tsx watch src/index.ts",
     "dev:docs": "pnpm --dir docs run dev",
     "build": "tsc -p tsconfig.build.json",
