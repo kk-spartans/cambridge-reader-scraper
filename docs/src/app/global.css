@@ -44,7 +44,7 @@ a {
 }
 
 pre {
-  border: 1px solid hsl(0 0% 20% / 0.8);
+  border: 0;
   box-shadow: none;
 }
 

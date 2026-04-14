@@ -19,6 +19,12 @@ type ProgressScreenProps = {
   onCancel: () => void;
 };
 
+type OutputDirectoryPromptProps = {
+  defaultValue: string;
+  onSubmit: (value: string) => void;
+  onCancel: () => void;
+};
+
 function hardCancelProcess(): never {
   if (process.stdin.isTTY && typeof process.stdin.setRawMode === "function") {
     process.stdin.setRawMode(false);
@@ -86,6 +92,50 @@ function statusLabel(status: ProgressStatus): string {
     default:
       return "unknown";
   }
+}
+
+function OutputDirectoryPrompt({
+  defaultValue,
+  onSubmit,
+  onCancel,
+}: OutputDirectoryPromptProps): React.JSX.Element {
+  const [value, setValue] = useState(defaultValue);
+
+  useInput((input, key) => {
+    if (key.ctrl && input === "c") {
+      onCancel();
+      hardCancelProcess();
+    }
+
+    if (key.return) {
+      onSubmit(value.trim() || defaultValue);
+      return;
+    }
+
+    if (key.escape) {
+      setValue(defaultValue);
+      return;
+    }
+
+    if (key.backspace || key.delete) {
+      setValue((current: string) => current.slice(0, -1));
+      return;
+    }
+
+    if (!key.ctrl && !key.meta && input.length === 1 && input >= " " && input <= "~") {
+      setValue((current: string) => `${current}${input}`);
+    }
+  });
+
+  return (
+    <Box flexDirection="column" paddingX={1}>
+      <Text color="cyan">Choose output directory</Text>
+      <Text color="gray">Enter = confirm, Esc = reset, Ctrl+C = cancel</Text>
+      <Text>
+        Output dir: <Text color="yellow">{value || "(empty)"}</Text>
+      </Text>
+    </Box>
+  );
 }
 
 function BookSelection({ books, onSubmit, onCancel }: BookSelectionProps): React.JSX.Element {
@@ -363,6 +413,34 @@ function ProgressScreen({
       </Box>
     </Box>
   );
+}
+
+export async function promptOutputDirectoryWithInk(defaultValue: string): Promise<string> {
+  if (!process.stdout.isTTY || !process.stdin.isTTY) {
+    return defaultValue;
+  }
+
+  return new Promise((resolve, reject) => {
+    let instance: ReturnType<typeof render> | undefined;
+
+    const submit = (value: string) => {
+      if (instance) {
+        instance.unmount();
+      }
+      resolve(value);
+    };
+
+    const cancel = () => {
+      if (instance) {
+        instance.unmount();
+      }
+      reject(new Error("Cancelled by user."));
+    };
+
+    instance = render(<OutputDirectoryPrompt defaultValue={defaultValue} onSubmit={submit} onCancel={cancel} />, {
+      exitOnCtrlC: false,
+    });
+  });
 }
 
 export async function selectBooksWithInk(books: UiBook[]): Promise<string[]> {

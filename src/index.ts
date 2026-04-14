@@ -1,4 +1,3 @@
-import * as readline from "node:readline/promises";
 import * as path from "node:path";
 
 import { discoverBooks } from "./book.js";
@@ -12,7 +11,7 @@ import {
 import { CLI_NAME, isCompletionShell, renderCompletion, renderHelp } from "./meta.js";
 import { resolveUserdataPath } from "./paths.js";
 import { detectPlaywrightBrowserExecutable, runReconstruction } from "./reconstruct.js";
-import { runWithInkProgress, selectBooksWithInk } from "./tui.js";
+import { promptOutputDirectoryWithInk, runWithInkProgress, selectBooksWithInk } from "./tui.js";
 import type { BookInfo, CliArgs, UiBook } from "./types.js";
 
 async function runInspectCommand(books: BookInfo[], userdataRoot: string): Promise<void> {
@@ -148,17 +147,8 @@ async function resolveOutputDirectory(args: CliArgs): Promise<string> {
     return path.resolve("out");
   }
 
-  const prompt = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  try {
-    const answer = await prompt.question("Output folder [out]: ");
-    return path.resolve(answer.trim() || "out");
-  } finally {
-    prompt.close();
-  }
+  const answer = await promptOutputDirectoryWithInk("out");
+  return path.resolve(answer.trim() || "out");
 }
 
 function printHelp(): void {
