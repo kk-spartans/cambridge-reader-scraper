@@ -1,3 +1,15 @@
+# [1.4.0](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.3.0...v1.4.0) (2026-04-14)
+
+
+### Bug Fixes
+
+* ignore usage binary in knip dead code checks ([253fcc6](https://github.com/kk-spartans/cambridge-reader-scraper/commit/253fcc617e6a3fe6404815158300da049681f98a))
+
+
+### Features
+
+* improve cli outdir prompt and docs UI ([2a48ca2](https://github.com/kk-spartans/cambridge-reader-scraper/commit/2a48ca257fa5d74692cdc1bfe84d6f564dc5b55d))
+
 # [1.3.0](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.2.0...v1.3.0) (2026-04-10)
 
 
