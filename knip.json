@@ -4,6 +4,7 @@
     ".": {
       "entry": [".releaserc.json"],
       "project": ["src/**/*.{ts,tsx}", "bin/**/*.js", ".releaserc.json"],
+      "ignoreBinaries": ["usage"],
       "ignoreDependencies": [
         "@semantic-release/commit-analyzer",
         "@semantic-release/github",
