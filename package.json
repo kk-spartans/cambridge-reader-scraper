@@ -20,8 +20,9 @@
     "access": "public"
   },
   "scripts": {
-    "cli": "tsx src/index.ts",
-    "start": "tsx src/index.ts",
+    "dev": "turbo run dev:cli dev:docs --parallel",
+    "dev:cli": "tsx watch src/index.ts",
+    "dev:docs": "pnpm --dir docs run dev",
     "build": "tsc -p tsconfig.build.json",
     "docs:dev": "pnpm --dir docs run dev",
     "docs:build": "pnpm --dir docs run build",
@@ -60,6 +61,7 @@
     "oxlint-tsgolint": "^0.20.0",
     "semantic-release": "^25.0.3",
     "tsx": "^4.21.0",
+    "turbo": "2.9.6",
     "typescript": "^6.0.2"
   },
   "packageManager": "pnpm@10.33.0"

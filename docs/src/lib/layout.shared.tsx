@@ -19,6 +19,5 @@ export function baseOptions(): BaseLayoutProps {
     themeSwitch: {
       enabled: false,
     },
-    githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
   };
 }

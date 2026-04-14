@@ -36,9 +36,9 @@ export function HomeShell() {
           <div className="flex flex-wrap gap-3">
             <Link
               href="/docs"
-              className="rounded-lg border border-zinc-200 bg-zinc-100 px-5 py-2.5 font-medium text-zinc-950 transition hover:bg-white"
+              className="rounded-lg border border-zinc-700 bg-zinc-200 px-5 py-2.5 font-medium text-zinc-950 transition hover:bg-zinc-100 hover:text-zinc-950"
             >
-              Open docs
+              Open Docs
             </Link>
             <Link
               href="https://github.com/kk-spartans/cambridge-reader-scraper"
@@ -59,7 +59,7 @@ export function HomeShell() {
           <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">
             Quick start
           </p>
-          <pre className="overflow-x-auto rounded-lg border border-zinc-900 bg-black p-4 text-sm text-zinc-100">
+          <pre className="overflow-x-auto rounded-lg bg-black p-4 text-sm text-zinc-100">
             <code>{installCommand}</code>
           </pre>
           <p className="mt-4 text-sm leading-7 text-zinc-400">
