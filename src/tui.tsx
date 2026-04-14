@@ -437,9 +437,12 @@ export async function promptOutputDirectoryWithInk(defaultValue: string): Promis
       reject(new Error("Cancelled by user."));
     };
 
-    instance = render(<OutputDirectoryPrompt defaultValue={defaultValue} onSubmit={submit} onCancel={cancel} />, {
-      exitOnCtrlC: false,
-    });
+    instance = render(
+      <OutputDirectoryPrompt defaultValue={defaultValue} onSubmit={submit} onCancel={cancel} />,
+      {
+        exitOnCtrlC: false,
+      },
+    );
   });
 }
 
