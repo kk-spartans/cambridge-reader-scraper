@@ -8,36 +8,21 @@
     "url": "https://github.com/kk-spartans/cambridge-reader-scraper"
   },
   "bin": {
-    "cambridge-reader-scraper": "bin/cambridge-reader-scraper.js"
+    "cambridge-reader-scraper": "dist/cambridge-reader-scraper"
   },
   "files": [
-    "dist",
-    "bin",
-    "completions"
+    "dist"
   ],
   "type": "module",
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "dev": "turbo run dev:cli dev:docs",
-    "dev:cli": "tsx watch src/index.ts",
-    "dev:docs": "pnpm --dir docs run dev",
-    "build": "tsc -p tsconfig.build.json",
-    "docs:dev": "pnpm --dir docs run dev",
-    "docs:build": "pnpm --dir docs run build",
-    "docs:start": "pnpm --dir docs run start",
-    "docs:typecheck": "pnpm --dir docs run typecheck",
-    "completions:generate": "usage generate completion bash cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/cambridge-reader-scraper.bash && usage generate completion zsh cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/_cambridge-reader-scraper && usage generate completion fish cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/cambridge-reader-scraper.fish && usage generate completion powershell cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/cambridge-reader-scraper.ps1 && tsx src/index.ts completion xonsh > completions/cambridge-reader-scraper.xsh",
-    "completions:check": "usage generate completion bash cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/cambridge-reader-scraper.bash && usage generate completion zsh cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/_cambridge-reader-scraper && usage generate completion fish cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/cambridge-reader-scraper.fish && usage generate completion powershell cambridge-reader-scraper -f cambridge-reader-scraper.usage.kdl > completions/cambridge-reader-scraper.ps1 && tsx src/index.ts completion xonsh > completions/cambridge-reader-scraper.xsh && git diff --exit-code -- completions",
-    "prepack": "pnpm run build",
-    "prepublishOnly": "pnpm run build",
-    "release": "semantic-release",
-    "format": "oxfmt --write .",
-    "format:check": "oxfmt --check .",
-    "lint": "oxlint --type-aware src bin",
-    "typecheck": "oxlint --type-aware --type-check src bin",
-    "knip": "knip"
+    "start": "tsx watch src/index.ts",
+    "check": "tsx devops/check.ts",
+    "release": "semantic-release --extends ./devops/semantic-release.json",
+    "prepack": "pnpm run check",
+    "prepublishOnly": "pnpm run check"
   },
   "dependencies": {
     "fast-xml-parser": "^5.5.11",
@@ -47,6 +32,7 @@
     "react": "^19.2.5"
   },
   "devDependencies": {
+    "@e18e/cli": "^0.7.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/git": "^10.0.1",
@@ -61,7 +47,6 @@
     "oxlint-tsgolint": "^0.23.0",
     "semantic-release": "^25.0.3",
     "tsx": "^4.21.0",
-    "turbo": "2.9.18",
     "typescript": "^6.0.2"
   },
   "packageManager": "pnpm@10.33.0"

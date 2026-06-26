@@ -1,9 +1,13 @@
 # dependencies
 node_modules
+.devenv
+.direnv
+.pre-commit-config.yaml
 
 # output
 out
 out-test
+out-test-*
 tmp
 _tmp
 *.pdf
@@ -12,12 +16,10 @@ pnpm-debug.log*
 playwright/.cache/
 **/_print_bundle.html
 **/_extracted/
+**/_browser_scrape/
 **/.DS_Store
 dist
 *.tgz
-docs/.next
-docs/.source
-docs/out
 .vercel
 .mise.local.toml
 
@@ -50,4 +52,3 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # local appdata snapshots / dumps
 userdata
-bun.lock*

@@ -19,6 +19,21 @@ type ProgressScreenProps = {
   onCancel: () => void;
 };
 
+type TaskProgressUpdate = {
+  message: string;
+  current: number;
+  total: number;
+  discovered?: number;
+};
+
+type TaskProgressScreenProps<T> = {
+  title: string;
+  run: (emit: (update: TaskProgressUpdate) => void) => Promise<T>;
+  onFinish: (result: T) => void;
+  onError: (error: unknown) => void;
+  onCancel: () => void;
+};
+
 type OutputDirectoryPromptProps = {
   defaultValue: string;
   onSubmit: (value: string) => void;
@@ -138,6 +153,73 @@ function OutputDirectoryPrompt({
   );
 }
 
+function TaskProgressScreen<T>({
+  title,
+  run,
+  onFinish,
+  onError,
+  onCancel,
+}: TaskProgressScreenProps<T>): React.JSX.Element {
+  const [update, setUpdate] = useState<TaskProgressUpdate>({
+    message: "Starting...",
+    current: 0,
+    total: 1,
+    discovered: 0,
+  });
+  const { stdout } = useStdout();
+  const columns = stdout.columns || 120;
+  const barWidth = clamp(Math.floor(columns * 0.32), 20, 46);
+
+  useEffect(() => {
+    let isActive = true;
+
+    void run((nextUpdate) => {
+      if (isActive) {
+        setUpdate(nextUpdate);
+      }
+    })
+      .then((result) => {
+        if (isActive) {
+          onFinish(result);
+        }
+      })
+      .catch((error) => {
+        if (isActive) {
+          onError(error);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [onError, onFinish, run]);
+
+  useInput((input, key) => {
+    if (key.ctrl && input === "c") {
+      onCancel();
+      hardCancelProcess();
+    }
+  });
+
+  const total = Math.max(1, update.total);
+  const current = clamp(update.current, 0, total);
+  const labelWidth = clamp(columns - barWidth - 20, 18, 90);
+
+  return (
+    <Box flexDirection="column" paddingX={1}>
+      <Text color="cyan">{title}</Text>
+      <Text color="gray">
+        {progressBar(current, total, barWidth)} {current}/{total}
+      </Text>
+      <Text>{truncate(update.message, labelWidth)}</Text>
+      {typeof update.discovered === "number" ? (
+        <Text color="green">Books found: {update.discovered}</Text>
+      ) : null}
+      <Text color="gray">Ctrl+C = cancel</Text>
+    </Box>
+  );
+}
+
 function BookSelection({ books, onSubmit, onCancel }: BookSelectionProps): React.JSX.Element {
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
@@ -153,7 +235,7 @@ function BookSelection({ books, onSubmit, onCancel }: BookSelectionProps): React
     }
 
     return books.filter((book) => {
-      const haystack = `${book.isbn} ${book.title}`.toLowerCase();
+      const haystack = `${book.isbn} ${book.title} ${book.blobName}`.toLowerCase();
       return haystack.includes(search);
     });
   }, [books, query]);
@@ -291,13 +373,22 @@ function BookSelection({ books, onSubmit, onCancel }: BookSelectionProps): React
           {highlighted ? (
             <>
               <Text>{truncate(highlighted.title, detailsWidth)}</Text>
-              <Text color="gray">ISBN: {highlighted.isbn}</Text>
-              <Text color="gray">Pages: {highlighted.pageCount}</Text>
-              <Text color="gray">
-                Viewport: {highlighted.viewportWidth}x{highlighted.viewportHeight}
-              </Text>
-              <Text color="gray">Archive entries: {highlighted.entryCount}</Text>
-              <Text color="gray">Blob: {highlighted.blobName}</Text>
+              {highlighted.pageCount > 0 ? (
+                <>
+                  <Text color="gray">ISBN: {highlighted.isbn}</Text>
+                  <Text color="gray">Pages: {highlighted.pageCount}</Text>
+                  <Text color="gray">
+                    Viewport: {highlighted.viewportWidth}x{highlighted.viewportHeight}
+                  </Text>
+                  <Text color="gray">Archive entries: {highlighted.entryCount}</Text>
+                  <Text color="gray">Blob: {highlighted.blobName}</Text>
+                </>
+              ) : (
+                <>
+                  <Text color="gray">Resource: {truncate(highlighted.blobName, detailsWidth)}</Text>
+                  <Text color="gray">Source: Cambridge GO</Text>
+                </>
+              )}
             </>
           ) : (
             <Text color="yellow">Select a book to view details.</Text>
@@ -466,6 +557,51 @@ export async function selectBooksWithInk(books: UiBook[]): Promise<string[]> {
       {
         exitOnCtrlC: false,
       },
+    );
+  });
+}
+
+export async function runWithInkTask<T>(params: {
+  title: string;
+  run: (emit: (update: TaskProgressUpdate) => void) => Promise<T>;
+}): Promise<T> {
+  if (!process.stdout.isTTY || !process.stdin.isTTY) {
+    return params.run(() => {});
+  }
+
+  return new Promise((resolve, reject) => {
+    let instance: ReturnType<typeof render> | undefined;
+
+    const finish = (result: T) => {
+      if (instance) {
+        instance.unmount();
+      }
+      resolve(result);
+    };
+
+    const fail = (error: unknown) => {
+      if (instance) {
+        instance.unmount();
+      }
+      reject(error);
+    };
+
+    const cancel = () => {
+      if (instance) {
+        instance.unmount();
+      }
+      reject(new Error("Cancelled by user."));
+    };
+
+    instance = render(
+      <TaskProgressScreen
+        title={params.title}
+        run={params.run}
+        onFinish={finish}
+        onError={fail}
+        onCancel={cancel}
+      />,
+      { exitOnCtrlC: false },
     );
   });
 }

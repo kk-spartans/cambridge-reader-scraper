@@ -1,0 +1,49 @@
+{
+  "services":
+    {
+      "scraper":
+        {
+          "build": { "context": "..", "dockerfile": "devops/Dockerfile" },
+          "user": "${UID:-1000}:${GID:-1000}",
+          "depends_on":
+            {
+              "cloakbrowser": { "condition": "service_healthy" },
+              "output": { "condition": "service_completed_successfully" },
+            },
+          "env_file": ["../.env"],
+          "environment":
+            {
+              "CLOAKBROWSER_CDP_URL": "http://cloakbrowser:9222",
+              "CAMBRIDGE_READER_SCRAPER_DOCKER": "1",
+            },
+          "volumes": ["../out:/out"],
+          "networks": { "default": { "aliases": ["cambridge-reader-scraper"] } },
+        },
+      "output":
+        {
+          "image": "busybox:1.37",
+          "command": "sh -c 'mkdir -p /out && chown ${UID:-1000}:${GID:-1000} /out'",
+          "volumes": ["../out:/out"],
+        },
+      "cloakbrowser":
+        {
+          "image": "cloakhq/cloakbrowser",
+          "command": "cloakserve --headless=false --idle-timeout=300",
+          "restart": "unless-stopped",
+          "ports": ["127.0.0.1:${CLOAKBROWSER_CDP_PORT:-9223}:9222"],
+          "environment":
+            {
+              "CLOAKBROWSER_LICENSE_KEY": "${CLOAKBROWSER_LICENSE_KEY:-}",
+              "CLOAKBROWSER_FETCH_WIDEVINE": "${CLOAKBROWSER_FETCH_WIDEVINE:-0}",
+            },
+          "healthcheck":
+            {
+              "test": ["CMD", "curl", "-f", "http://localhost:9222/json/version"],
+              "interval": "30s",
+              "timeout": "5s",
+              "retries": 3,
+              "start_period": "20s",
+            },
+        },
+    },
+}

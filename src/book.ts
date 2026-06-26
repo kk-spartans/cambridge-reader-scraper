@@ -7,7 +7,7 @@ import { entryToUtf8, parseCustomArchive } from "./archive.js";
 import { detectBlobRoots } from "./paths.js";
 import type { BookInfo, BookMetadata, ChapterNode } from "./types.js";
 
-const DEFAULT_VIEWPORT = { width: 957, height: 1199 };
+export const DEFAULT_VIEWPORT = { width: 957, height: 1199 };
 const XML = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "@_",
@@ -57,7 +57,7 @@ function xmlText(value: unknown): string {
   return "";
 }
 
-function parseViewportFromXhtml(xhtml: string): { width: number; height: number } {
+export function parseViewportFromXhtml(xhtml: string): { width: number; height: number } {
   const viewportMetaTagMatch = xhtml.match(/<meta[^>]*name=["']viewport["'][^>]*>/i);
   if (!viewportMetaTagMatch) {
     return DEFAULT_VIEWPORT;
@@ -85,7 +85,7 @@ function parseViewportFromXhtml(xhtml: string): { width: number; height: number 
   };
 }
 
-function parseBookFromOpf(opfXml: string, opfPath: string): BookMetadata {
+export function parseBookFromOpf(opfXml: string, opfPath: string): BookMetadata {
   const parsed = XML.parse(opfXml) as Record<string, unknown>;
   const pkg = parsed.package as Record<string, unknown>;
   if (!pkg) {

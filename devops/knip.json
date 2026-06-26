@@ -1,0 +1,17 @@
+{
+  "$schema": "https://knip.dev/schema.json",
+  "entry": ["devops/semantic-release.json"],
+  "project": ["src/**/*.{ts,tsx}", "devops/*.ts", "devops/semantic-release.json"],
+  "ignoreDependencies": [
+    "@e18e/cli",
+    "@semantic-release/changelog",
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/git",
+    "@semantic-release/github",
+    "@semantic-release/npm",
+    "@semantic-release/release-notes-generator",
+    "oxfmt",
+    "oxlint",
+    "oxlint-tsgolint"
+  ]
+}

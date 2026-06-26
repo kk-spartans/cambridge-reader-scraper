@@ -1,6 +1,6 @@
 export const CLI_NAME = "cambridge-reader-scraper";
 
-type CompletionShell = "bash" | "zsh" | "fish" | "powershell" | "xonsh";
+type CompletionShell = "bash" | "zsh" | "fish" | "powershell";
 
 type CommandDefinition = {
   name: string;
@@ -41,6 +41,31 @@ const OPTIONS: OptionDefinition[] = [
     expectsValue: true,
   },
   {
+    name: "--cdp-url",
+    description: "CDP endpoint for CloakBrowser browser mode",
+    expectsValue: true,
+  },
+  {
+    name: "--browser-scrape",
+    description: "scrape through Cambridge GO in a browser instead of local userdata",
+    expectsValue: false,
+  },
+  {
+    name: "--url",
+    description: "Cambridge GO reader URL for browser scraping",
+    expectsValue: true,
+  },
+  {
+    name: "--email",
+    description: "Cambridge GO email for browser scraping",
+    expectsValue: true,
+  },
+  {
+    name: "--password",
+    description: "Cambridge GO password for browser scraping",
+    expectsValue: true,
+  },
+  {
     name: "--page-timeout-ms",
     description: "page navigation timeout in milliseconds",
     expectsValue: true,
@@ -68,17 +93,27 @@ const OPTIONS: OptionDefinition[] = [
   { name: "--help", description: "show CLI help", expectsValue: false },
 ];
 
-const COMPLETION_SHELLS: CompletionShell[] = ["bash", "zsh", "fish", "powershell", "xonsh"];
+const COMPLETION_SHELLS: CompletionShell[] = ["bash", "zsh", "fish", "powershell"];
 
 export function isCompletionShell(value: string): value is CompletionShell {
   return COMPLETION_SHELLS.includes(value as CompletionShell);
 }
 
+function visibleOptions(): OptionDefinition[] {
+  if (process.env.CAMBRIDGE_READER_SCRAPER_DOCKER === "1") {
+    return OPTIONS.filter((option) => option.name !== "--outdir");
+  }
+
+  return OPTIONS;
+}
+
 function formatOptionsForHelp(): string {
-  return OPTIONS.map(
-    (option) =>
-      `  ${option.name}${option.expectsValue ? " <value>" : ""}\n      ${option.description}`,
-  ).join("\n");
+  return visibleOptions()
+    .map(
+      (option) =>
+        `  ${option.name}${option.expectsValue ? " <value>" : ""}\n      ${option.description}`,
+    )
+    .join("\n");
 }
 
 function formatCommandsForHelp(): string {
@@ -86,6 +121,18 @@ function formatCommandsForHelp(): string {
 }
 
 export function renderHelp(): string {
+  const isDocker = process.env.CAMBRIDGE_READER_SCRAPER_DOCKER === "1";
+  const examples = [
+    ...(isDocker ? [`  ${CLI_NAME}`] : [`  ${CLI_NAME} inspect --userdata ./userdata`]),
+    ...(isDocker
+      ? [`  ${CLI_NAME} inspect --no-tui`]
+      : [
+          `  ${CLI_NAME} reconstruct --isbn 9781000000000 --outdir ./pdfs`,
+          `  ${CLI_NAME} reconstruct --browser-scrape --cdp-url http://127.0.0.1:9223`,
+        ]),
+    `  ${CLI_NAME} completion fish`,
+  ];
+
   return [
     `${CLI_NAME} rebuilds Cambridge Reader books into PDFs.`,
     "",
@@ -99,10 +146,7 @@ export function renderHelp(): string {
     formatOptionsForHelp(),
     "",
     "Examples:",
-    `  ${CLI_NAME}`,
-    `  ${CLI_NAME} inspect --userdata ./userdata`,
-    `  ${CLI_NAME} reconstruct --isbn 9781000000000 --outdir ./pdfs`,
-    `  ${CLI_NAME} completion fish`,
+    ...examples,
   ].join("\n");
 }
 
@@ -111,7 +155,7 @@ function shellWords(values: string[]): string {
 }
 
 function optionNames(): string[] {
-  return OPTIONS.map((option) => option.name);
+  return visibleOptions().map((option) => option.name);
 }
 
 function renderBashCompletion(): string {
@@ -229,30 +273,6 @@ function renderPowerShellCompletion(): string {
 `;
 }
 
-function renderXonshCompletion(): string {
-  const commands = JSON.stringify(COMMANDS.map((command) => command.name));
-  const options = JSON.stringify(optionNames());
-  const shells = JSON.stringify(COMPLETION_SHELLS);
-
-  return `def _complete_${CLI_NAME.replace(/-/g, "_")}(prefix, line, begidx, endidx, ctx=None):
-    commands = ${commands}
-    options = ${options}
-    shells = ${shells}
-    tokens = line[:endidx].split()
-
-    if len(tokens) <= 1:
-        return {item for item in commands + options if item.startswith(prefix)}
-
-    if len(tokens) == 2 and tokens[1] == 'completion':
-        return {item for item in shells if item.startswith(prefix)}
-
-    return {item for item in options if item.startswith(prefix)}
-
-
-completer add ${CLI_NAME.replace(/-/g, "_")} _complete_${CLI_NAME.replace(/-/g, "_")} end
-`;
-}
-
 export function renderCompletion(shell: CompletionShell): string {
   switch (shell) {
     case "bash":
@@ -263,8 +283,6 @@ export function renderCompletion(shell: CompletionShell): string {
       return renderFishCompletion();
     case "powershell":
       return renderPowerShellCompletion();
-    case "xonsh":
-      return renderXonshCompletion();
     default:
       return shell;
   }

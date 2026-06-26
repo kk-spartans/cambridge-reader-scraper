@@ -2,27 +2,7 @@ name: Release
 
 on:
   push:
-    branches:
-      - main
-      - master
-    paths:
-      - "src/**"
-      - "bin/**"
-      - "completions/**"
-      - "cambridge-reader-scraper.usage.kdl"
-      - "package.json"
-      - "tsconfig.json"
-      - "tsconfig.build.json"
-      - ".gitignore"
-      - ".oxfmtrc.json"
-      - ".oxlintrc.json"
-      - ".releaserc.json"
-      - ".codespellrc"
-      - ".github/codespell-requirements.txt"
-      - ".github/workflows/release.yml"
-      - "knip.json"
-      - "mise.toml"
-      - "UNLICENSE"
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -30,6 +10,7 @@ permissions:
   id-token: write
   issues: write
   pull-requests: write
+  packages: write
 
 jobs:
   release:
@@ -41,19 +22,64 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: Setup mise
-        uses: jdx/mise-action@v4
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v16
         with:
-          version: 2026.4.8
-          install: true
+          name: devenv
 
-      - name: Install dependencies
-        run: mise run install
+      - run: nix profile add nixpkgs#devenv
+
+      - name: Save previous tag
+        id: pre
+        run: echo "tag=$(git tag --list 'v*' --sort=-version:refname | head -1)" >> "$GITHUB_OUTPUT"
 
       - name: Run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ""
           NPM_CONFIG_PROVENANCE: true
-        run: pnpm exec semantic-release
+        run: devenv tasks run cambridge-reader-scraper:release
+
+      - name: Check for new release
+        id: check
+        run: |
+          TAG=$(git tag --list 'v*' --sort=-version:refname | head -1)
+          PREV="${{ steps.pre.outputs.tag }}"
+          if [ -z "$TAG" ] || [ "$TAG" = "$PREV" ]; then
+            echo "No new release, skipping Docker image build"
+            exit 0
+          fi
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        if: steps.check.outputs.version != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        if: steps.check.outputs.version != ''
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate short SHA
+        if: steps.check.outputs.version != ''
+        id: sha
+        run: echo "short=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push Docker image
+        if: steps.check.outputs.version != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: devops/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/cambridge-reader-scraper-app:latest
+            ghcr.io/${{ github.repository }}/cambridge-reader-scraper-app:${{ steps.sha.outputs.short }}
+            ghcr.io/${{ github.repository }}/cambridge-reader-scraper-app:v${{ steps.check.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
