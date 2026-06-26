@@ -94,7 +94,7 @@ export type ProgressUpdate = {
   message?: string;
 };
 
-export type ReconstructionFailure = {
+type ReconstructionFailure = {
   isbn: string;
   title: string;
   error: string;

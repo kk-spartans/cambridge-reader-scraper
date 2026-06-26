@@ -1,7 +1,7 @@
 {
   "$schema": "https://knip.dev/schema.json",
-  "entry": ["devops/semantic-release.json"],
-  "project": ["src/**/*.{ts,tsx}", "devops/*.ts", "devops/semantic-release.json"],
+  "project": ["src/**/*.{ts,tsx}", "devops/*.ts"],
+  "ignoreBinaries": ["gitleaks", "usage"],
   "ignoreDependencies": [
     "@e18e/cli",
     "@semantic-release/changelog",
