@@ -1,3 +1,10 @@
+## [1.5.2](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.5.1...v1.5.2) (2026-06-26)
+
+
+### Bug Fixes
+
+* use correct docker image ([bc92226](https://github.com/kk-spartans/cambridge-reader-scraper/commit/bc922263e37ee22517281f4a9fd9e29fd797ec22))
+
 ## [1.5.1](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.5.0...v1.5.1) (2026-06-26)
 
 
