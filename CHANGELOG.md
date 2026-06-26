@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.4.0...v1.5.0) (2026-06-26)
+
+
+### Features
+
+* create a browser based scraper for more versatility ([2245fa1](https://github.com/kk-spartans/cambridge-reader-scraper/commit/2245fa1acf9aefa6f643a8134760be0c0231d913))
+
 # [1.4.0](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.3.0...v1.4.0) (2026-04-14)
 
 ### Bug Fixes
