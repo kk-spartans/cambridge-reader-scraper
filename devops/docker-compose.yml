@@ -3,7 +3,7 @@
     {
       "scraper":
         {
-          "image": "ghcr.io/kk-spartans/cambridge-reader-scraper:latest",
+          "image": "ghcr.io/kk-spartans/cambridge-reader-scraper/cambridge-reader-scraper-app:latest",
           "user": "${UID:-1000}:${GID:-1000}",
           "depends_on":
             {
