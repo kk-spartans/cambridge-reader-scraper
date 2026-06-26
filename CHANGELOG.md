@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.5.0...v1.5.1) (2026-06-26)
+
+
+### Bug Fixes
+
+* resolve knip CI failure ([6735d72](https://github.com/kk-spartans/cambridge-reader-scraper/commit/6735d72a6f92da44095d55085ab6b75714bc6774))
+
 # [1.5.0](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.4.0...v1.5.0) (2026-06-26)
 
 
