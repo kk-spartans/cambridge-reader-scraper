@@ -61,25 +61,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Docker Buildx
-        if: steps.check.outputs.version != ''
-        uses: docker/setup-buildx-action@v3
-
       - name: Generate short SHA
         if: steps.check.outputs.version != ''
         id: sha
         run: echo "short=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
 
-      - name: Build and push Docker image
+      - name: Build Docker image with Nix
         if: steps.check.outputs.version != ''
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: devops/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/cambridge-reader-scraper-app:latest
-            ghcr.io/${{ github.repository }}/cambridge-reader-scraper-app:${{ steps.sha.outputs.short }}
-            ghcr.io/${{ github.repository }}/cambridge-reader-scraper-app:v${{ steps.check.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        run: nix build .#docker --print-build-logs
+
+      - name: Load image into Docker
+        if: steps.check.outputs.version != ''
+        run: docker load < result
+
+      - name: Tag and push Docker image
+        if: steps.check.outputs.version != ''
+        run: |
+          IMAGE=ghcr.io/${{ github.repository }}/cambridge-reader-scraper-app
+          docker tag "$IMAGE:latest" "$IMAGE:${{ steps.sha.outputs.short }}"
+          docker tag "$IMAGE:latest" "$IMAGE:v${{ steps.check.outputs.version }}"
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:${{ steps.sha.outputs.short }}"
+          docker push "$IMAGE:v${{ steps.check.outputs.version }}"

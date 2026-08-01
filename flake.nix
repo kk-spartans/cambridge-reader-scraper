@@ -1,13 +1,7 @@
 {
   description = "Cambridge Reader scraper";
 
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    home-manager = {
-      url = "github:nix-community/home-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-  };
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
   outputs =
     {
@@ -30,8 +24,11 @@
         in
         {
           default = pkgs.callPackage ./devops/package.nix { };
+          docker = pkgs.callPackage ./devops/docker.nix { };
         }
       );
+
+      legacyPackages = forAllSystems (system: nixpkgs.legacyPackages.${system});
 
       apps = forAllSystems (system: {
         default = {

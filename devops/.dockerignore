@@ -1,8 +1,0 @@
-.devenv
-.direnv
-.git
-dist
-node_modules
-out
-out-*
-**/_browser_scrape

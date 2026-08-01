@@ -3,14 +3,15 @@
   stdenv,
   nodejs_24,
   pnpm,
+  pnpmConfigHook,
+  fetchPnpmDeps,
   cacert,
 }:
 
 let
   pkg = builtins.fromJSON (builtins.readFile ../package.json);
-in
-stdenv.mkDerivation {
-  inherit (pkg) name version;
+  version = pkg.version;
+  pname = pkg.name;
 
   src = lib.cleanSourceWith {
     src = ../.;
@@ -30,26 +31,39 @@ stdenv.mkDerivation {
         )
       );
   };
+in
+stdenv.mkDerivation {
+  inherit pname version;
+  inherit src;
+
+  pnpmDeps = fetchPnpmDeps {
+    inherit pname version src;
+    hash = "sha256-QKwKo2HcBkRCEYUAm/IEowzJjOLJT9GdJBD5MDelkng=";
+    fetcherVersion = 4;
+  };
 
   nativeBuildInputs = [
     nodejs_24
     pnpm
+    pnpmConfigHook
   ];
   buildInputs = [ cacert ];
 
   buildPhase = ''
     runHook preBuild
-    export HOME=$TMPDIR
     export SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt
-    pnpm install --frozen-lockfile
+    export CAMBRIDGE_READER_SCRAPER_DOCKER=1
     pnpm run check
     runHook postBuild
   '';
 
   installPhase = ''
     runHook preInstall
+    export SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt
+    pnpm install --prod --offline --frozen-lockfile
     mkdir -p $out/bin $out/lib/cambridge-reader-scraper
     cp -r dist package.json $out/lib/cambridge-reader-scraper/
+    cp -r node_modules $out/lib/cambridge-reader-scraper/node_modules
     ln -s $out/lib/cambridge-reader-scraper/dist/cambridge-reader-scraper $out/bin/cambridge-reader-scraper
     chmod +x $out/bin/cambridge-reader-scraper
     runHook postInstall
