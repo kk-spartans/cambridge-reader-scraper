@@ -1,0 +1,106 @@
+---
+title: Troubleshooting
+description: Common issues and the fixes that usually matter.
+---
+
+## No books are detected (local mode)
+
+Run:
+
+```bash
+cambridge-reader-scraper inspect
+```
+
+If nothing appears, make sure Cambridge Reader has downloaded the book locally
+(blobs under 1 MB are skipped). You can also point the CLI at a custom folder:
+
+```bash
+cambridge-reader-scraper inspect --userdata ./userdata
+```
+
+On Linux the CLI searches `$XDG_CONFIG_HOME` / `$XDG_DATA_HOME` (plus `./userdata`);
+on macOS `~/Library/Application Support/<app>`; on Windows `%LOCALAPPDATA%`. Use
+`--app-name` if your Reader install uses a different profile name.
+
+## No books are detected (browser mode)
+
+If the account scan finds nothing, confirm the books are visible under
+`https://www.cambridge.org/go/resources` when logged in manually, then re-run:
+
+```bash
+cambridge-reader-scraper inspect --browser-scrape
+```
+
+## Cambridge GO login required
+
+```
+Cambridge GO login required. Pass --email/--password or set CAMBRIDGE_GO_EMAIL/CAMBRIDGE_GO_PASSWORD.
+```
+
+The session is not logged in. Pass `--email` and `--password` (or set the matching
+env vars). In Docker these come from your `.env` file.
+
+## Playwright browser not found
+
+Install Chromium for Playwright:
+
+```bash
+pnpm dlx playwright install chromium
+```
+
+```bash
+npx playwright install chromium
+```
+
+```bash
+bunx playwright install chromium
+```
+
+Or pass an explicit path with `--browser`, or set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`
+(`CHROMIUM_PATH` / `CHROME_PATH` work too). When using `--cdp-url`, no local browser
+is needed at all.
+
+## Cannot reach the CDP endpoint
+
+Check that CloakBrowser is up (`curl -f http://localhost:9223/json/version` by default)
+and that `--cdp-url` / `CLOAKBROWSER_CDP_URL` points at it. In Docker the scraper
+waits for the `cloakbrowser` service healthcheck before starting.
+
+## Cloudflare or 5xx error pages while rendering
+
+The renderer retries transient error pages with backoff (2s → 30s). If it still fails,
+the book is reported under "Failed books" / "Failed browser scrape" and the run exits
+non-zero. Waiting a few minutes and re-running with `--max-pages` to isolate the page
+usually helps.
+
+## I want a non-interactive script run
+
+Use `--no-tui` and pass `--outdir` to skip the prompt:
+
+```bash
+cambridge-reader-scraper reconstruct --no-tui --outdir ./pdfs
+```
+
+```bash
+cambridge-reader-scraper reconstruct --browser-scrape --no-tui --outdir ./pdfs
+```
+
+Without a TTY the picker selects everything automatically; combine with `--isbn` to
+narrow local-blob runs, or `--url` for a single GO book.
+
+## Docker output permission problems
+
+`./out` is chowned to `${UID:-1000}:${GID:-1000}` by the one-shot `output` service.
+If PDFs show up owned by the wrong user, export matching `UID`/`GID` before running:
+
+```bash
+UID=$(id -u) GID=$(id -g) docker compose run --rm scraper
+```
+
+## Shell completion is not loading
+
+1. Make sure you wrote the completion file to the right shell-specific directory.
+2. Reload your shell config.
+3. Re-run `cambridge-reader-scraper completion <shell>` after upgrading the CLI.
+4. Supported shells are `bash`, `zsh`, `fish`, and `powershell` — anything else errors
+   with `Unknown shell.`

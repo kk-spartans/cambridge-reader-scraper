@@ -1,0 +1,11 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "usage",
+    "browser-scraping",
+    "shell-completions",
+    "cli-reference",
+    "troubleshooting"
+  ]
+}

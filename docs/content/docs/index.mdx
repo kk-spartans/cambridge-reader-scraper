@@ -1,0 +1,128 @@
+---
+title: Getting Started
+description: Run the Docker quickstart or the local CLI, then export your first PDF.
+---
+
+`cambridge-reader-scraper` rebuilds Cambridge Reader and Cambridge GO books into PDFs.
+There are two ways to run it:
+
+- **Docker (recommended):** starts CloakBrowser automatically, logs into Cambridge GO,
+  shows a book picker, and writes PDFs to `./out`.
+- **Local CLI:** inspects local Cambridge Reader blobs or drives Cambridge GO through
+  a browser on your machine.
+
+## Option A: Docker quickstart
+
+Download the compose file:
+
+```bash
+mkdir scraper
+cd scraper
+curl -fsSLO https://raw.githubusercontent.com/kk-spartans/cambridge-reader-scraper/main/devops/docker-compose.yml
+```
+
+Create `.env`:
+
+```bash
+CAMBRIDGE_GO_EMAIL=you@example.com
+CAMBRIDGE_GO_PASSWORD=your-password
+```
+
+Run it:
+
+```bash
+docker compose run --rm scraper
+```
+
+The scraper starts CloakBrowser automatically, logs into Cambridge GO, shows a book
+picker, and writes PDFs to `./out`. Inside Docker the output directory is always
+`/out` (mounted from `./out`), so `--outdir` is hidden from the help output.
+
+## Option B: Local CLI
+
+### Prerequisites
+
+For local-blob mode:
+
+1. Install the Cambridge Reader desktop app and download the book you want.
+2. Log in once so the app stores its local data.
+3. Install a Chromium build for Playwright (or pass `--browser`).
+
+For browser mode (Cambridge GO), you only need a Chromium build and your
+Cambridge GO credentials — no desktop app required.
+
+### Install the CLI
+
+Install globally with your preferred package manager:
+
+```bash
+pnpm add -g cambridge-reader-scraper
+```
+
+```bash
+npm install -g cambridge-reader-scraper
+```
+
+```bash
+bun add -g cambridge-reader-scraper
+```
+
+If you do not want a global install, just use an exec runner:
+
+```bash
+pnpm dlx cambridge-reader-scraper
+```
+
+```bash
+npx cambridge-reader-scraper
+```
+
+```bash
+bunx cambridge-reader-scraper
+```
+
+### Install Playwright Chromium
+
+```bash
+pnpm dlx playwright install chromium
+```
+
+```bash
+npx playwright install chromium
+```
+
+```bash
+bunx playwright install chromium
+```
+
+The CLI also auto-detects an existing browser via `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`,
+`CHROMIUM_PATH`, `CHROME_PATH`, common `PATH` entries (`chromium`, `google-chrome`,
+and friends), or the Windows `ms-playwright` cache. Otherwise pass `--browser`.
+
+## First run
+
+Local blobs (default outside Docker):
+
+```bash
+cambridge-reader-scraper
+```
+
+Cambridge GO in the browser:
+
+```bash
+cambridge-reader-scraper reconstruct --browser-scrape
+```
+
+When you do not pass `--outdir` outside Docker, the CLI prompts once for the output
+folder. Press Enter to accept the default `out` directory. In Docker the output is
+always `/out`, and without a TTY the default is `./out`.
+
+## Next steps
+
+<Cards>
+  <Card title="Usage guide" href="/docs/usage" />
+  <Card title="Browser scraping" href="/docs/browser-scraping" />
+  <Card title="Shell completions" href="/docs/shell-completions" />
+  <Card title="CLI reference" href="/docs/cli-reference" />
+  <Card title="Troubleshooting" href="/docs/troubleshooting" />
+</Cards>
