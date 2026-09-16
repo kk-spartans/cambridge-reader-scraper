@@ -8,7 +8,7 @@ import { chromium, type BrowserContext, type Frame, type Page } from "playwright
 import { PDFDocument } from "pdf-lib";
 
 import { extractEntryBuffer, normalizeArchiveRelativePath, parseCustomArchive } from "./archive.js";
-import { extractChaptersFromArchive } from "./book.js";
+import { extractChaptersFromArchive, isMediaPath } from "./book.js";
 import { safeFileName } from "./paths.js";
 import type {
   BookInfo,
@@ -382,6 +382,49 @@ function firstLine(value: string): string {
   return value.split("\n", 1)[0] ?? value;
 }
 
+function mediaOutDirForPdf(outputPdfPath: string): string {
+  const dir = path.dirname(outputPdfPath);
+  const base = path.basename(outputPdfPath, path.extname(outputPdfPath)) || "book";
+  return path.join(dir, `${base}_media`);
+}
+
+async function listFilesRecursive(rootDir: string): Promise<string[]> {
+  const out: string[] = [];
+  const entries = await fs.readdir(rootDir, { withFileTypes: true }).catch(() => []);
+  for (const entry of entries) {
+    const absolute = path.join(rootDir, entry.name);
+    if (entry.isDirectory()) {
+      out.push(...(await listFilesRecursive(absolute)));
+    } else if (entry.isFile()) {
+      out.push(absolute);
+    }
+  }
+  return out;
+}
+
+async function copyMediaFilesToOutDir(params: {
+  assetRoot: string;
+  mediaOutDir: string;
+}): Promise<string[]> {
+  const allFiles = await listFilesRecursive(params.assetRoot);
+  const mediaFiles = allFiles
+    .filter((file) => isMediaPath(file))
+    .sort((a, b) => a.localeCompare(b));
+  if (!mediaFiles.length) {
+    return [];
+  }
+
+  const saved: string[] = [];
+  for (const source of mediaFiles) {
+    const relative = path.relative(params.assetRoot, source);
+    const destination = path.join(params.mediaOutDir, ...relative.split(path.sep));
+    await fs.mkdir(path.dirname(destination), { recursive: true });
+    await fs.copyFile(source, destination);
+    saved.push(destination);
+  }
+  return saved;
+}
+
 async function fetchViewerAssetThroughCDP(frame: Frame, remoteUrl: string): Promise<Buffer> {
   const result = await frame.evaluate(async (url) => {
     const browserResponse = await fetch(url, { credentials: "include" });
@@ -431,7 +474,9 @@ async function materializeRemoteBookAssets(params: {
   await fs.rm(destinationDir, { recursive: true, force: true });
   await fs.mkdir(destinationDir, { recursive: true });
 
-  let pending = book.pagePaths.map((relativePath) => new URL(relativePath, remoteBookBaseUrl).href);
+  let pending = [...book.pagePaths, ...book.mediaPaths].map(
+    (relativePath) => new URL(relativePath, remoteBookBaseUrl).href,
+  );
   const seen = new Set<string>();
 
   while (pending.length) {
@@ -770,12 +815,13 @@ export async function renderRemoteBookToPdf(params: {
   outputPdfPath: string;
   navigationTimeoutMs: number;
   tempRoot: string;
+  skipMedia?: boolean;
   onProgress?: (progress: {
     completedPages: number;
     totalPages: number;
     status: "rendering" | "processing" | "done";
   }) => void;
-}): Promise<void> {
+}): Promise<{ mediaFiles: string[] }> {
   const {
     remoteBookBaseUrl,
     book,
@@ -787,6 +833,7 @@ export async function renderRemoteBookToPdf(params: {
     outputPdfPath,
     navigationTimeoutMs,
     tempRoot,
+    skipMedia,
     onProgress,
   } = params;
 
@@ -843,7 +890,14 @@ export async function renderRemoteBookToPdf(params: {
         onProgress,
       }))
     ) {
-      return;
+      if (skipMedia) {
+        return { mediaFiles: [] };
+      }
+      const mediaFiles = await copyMediaFilesToOutDir({
+        assetRoot: materializedAssetRoot,
+        mediaOutDir: mediaOutDirForPdf(outputPdfPath),
+      });
+      return { mediaFiles };
     }
 
     assetServer = viewerFrame ? await serveDirectory(materializedAssetRoot) : undefined;
@@ -943,6 +997,17 @@ export async function renderRemoteBookToPdf(params: {
       totalPages: book.pagePaths.length,
       status: "done",
     });
+
+    if (skipMedia) {
+      return { mediaFiles: [] };
+    }
+    const mediaFiles = materializedBookBasePath
+      ? await copyMediaFilesToOutDir({
+          assetRoot: materializedAssetRoot,
+          mediaOutDir: mediaOutDirForPdf(outputPdfPath),
+        })
+      : [];
+    return { mediaFiles };
   } finally {
     await new Promise<void>((resolve) => assetServer?.server.close(() => resolve()) ?? resolve());
     await fs.rm(tempPdfDir, { recursive: true, force: true });
@@ -989,6 +1054,7 @@ export async function runReconstruction(params: {
   keepExtracted: boolean;
   concurrency: number;
   maxPages?: number;
+  skipMedia?: boolean;
   emit: (update: ProgressUpdate) => void;
 }): Promise<ReconstructionSummary> {
   const {
@@ -1000,6 +1066,7 @@ export async function runReconstruction(params: {
     keepExtracted,
     concurrency,
     maxPages,
+    skipMedia,
     emit,
   } = params;
 
@@ -1008,6 +1075,7 @@ export async function runReconstruction(params: {
 
   const successes: BookRunResult[] = [];
   const failures: BookRunFailure[] = [];
+  const mediaFiles: string[] = [];
 
   await runWithConcurrency(books, concurrency, async (book) => {
     const extractedDir = path.join(tempRoot, book.isbn);
@@ -1059,6 +1127,14 @@ export async function runReconstruction(params: {
         },
       });
 
+      if (!skipMedia) {
+        const savedMedia = await copyMediaFilesToOutDir({
+          assetRoot: extractedDir,
+          mediaOutDir: mediaOutDirForPdf(outputPdfPath),
+        });
+        mediaFiles.push(...savedMedia);
+      }
+
       successes.push({
         isbn: book.isbn,
         title: book.title,
@@ -1090,5 +1166,6 @@ export async function runReconstruction(params: {
   return {
     succeeded: successes.map((item) => item.outputPdfPath),
     failed: failures,
+    mediaFiles: mediaFiles.sort((a, b) => a.localeCompare(b)),
   };
 }

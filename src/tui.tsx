@@ -377,6 +377,7 @@ function BookSelection({ books, onSubmit, onCancel }: BookSelectionProps): React
                 <>
                   <Text color="gray">ISBN: {highlighted.isbn}</Text>
                   <Text color="gray">Pages: {highlighted.pageCount}</Text>
+                  <Text color="gray">Media files: {highlighted.mediaCount}</Text>
                   <Text color="gray">
                     Viewport: {highlighted.viewportWidth}x{highlighted.viewportHeight}
                   </Text>

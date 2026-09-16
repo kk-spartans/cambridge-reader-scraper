@@ -34,6 +34,7 @@ export type BookMetadata = {
   isbn: string;
   opfPath: string;
   pagePaths: string[];
+  mediaPaths: string[];
   tocPath?: string;
   navPath?: string;
 };
@@ -44,6 +45,7 @@ export type BookInfo = {
   title: string;
   isbn: string;
   pagePaths: string[];
+  mediaPaths: string[];
   opfPath: string;
   tocPath?: string;
   navPath?: string;
@@ -71,6 +73,7 @@ export type UiBook = {
   isbn: string;
   title: string;
   pageCount: number;
+  mediaCount: number;
   viewportWidth: number;
   viewportHeight: number;
   entryCount: number;
@@ -103,4 +106,5 @@ type ReconstructionFailure = {
 export type ReconstructionSummary = {
   succeeded: string[];
   failed: ReconstructionFailure[];
+  mediaFiles: string[];
 };
