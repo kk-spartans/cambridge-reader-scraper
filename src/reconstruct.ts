@@ -10,6 +10,7 @@ import { PDFDocument } from "pdf-lib";
 import { extractEntryBuffer, normalizeArchiveRelativePath, parseCustomArchive } from "./archive.js";
 import { extractChaptersFromArchive } from "./book.js";
 import { safeFileName } from "./paths.js";
+import { normalizePrintReadingOrder } from "./reading-order.js";
 import type {
   BookInfo,
   BookRunFailure,
@@ -693,6 +694,10 @@ async function renderBookToPdf(params: {
 
       await waitForPageAssets(page);
 
+      // Reorder the DOM into visual reading order so text selection and
+      // copying follow the page layout instead of the source markup order.
+      await normalizePrintReadingOrder(page);
+
       const pageSize = book.viewport;
 
       const partialPath = path.join(tempPdfDir, `${String(index + 1).padStart(5, "0")}.pdf`);
@@ -885,6 +890,10 @@ export async function renderRemoteBookToPdf(params: {
           });
 
           await waitForPageAssets(renderPage);
+
+          // Reorder the DOM into visual reading order so text selection and
+          // copying follow the page layout instead of the source markup order.
+          await normalizePrintReadingOrder(renderPage);
 
           const partialPath = path.join(tempPdfDir, `${String(index + 1).padStart(5, "0")}.pdf`);
           await renderPage.emulateMedia({ media: "print" });
