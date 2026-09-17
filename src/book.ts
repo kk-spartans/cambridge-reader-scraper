@@ -418,7 +418,7 @@ export function extractChaptersFromArchive(buffer: Buffer, book: BookInfo): Chap
       try {
         ncxXml = entryToUtf8(buffer, tocEntry);
       } catch {
-        return [];
+        ncxXml = undefined;
       }
     }
   }

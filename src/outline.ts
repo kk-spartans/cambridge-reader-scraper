@@ -52,10 +52,10 @@ function toOutlineEntries(nodes: ChapterNode[], pageCount: number): OutlineEntry
   return entries;
 }
 
-function countDescendants(entries: OutlineEntry[]): number {
+function countBuiltDescendants(nodes: BuiltNode[]): number {
   let count = 0;
-  for (const entry of entries) {
-    count += 1 + countDescendants(entry.children);
+  for (const node of nodes) {
+    count += 1 + countBuiltDescendants(node.children);
   }
   return count;
 }
@@ -132,10 +132,9 @@ export function setPdfOutline(pdfDoc: PDFDocument, chapters: ChapterNode[]): voi
       const firstChild = node.children[0];
       const lastChild = node.children[node.children.length - 1];
       if (node.children.length && firstChild && lastChild) {
-        const descendantCount = countDescendants(node.entry.children);
         node.dict.set(PDFName.of("First"), firstChild.ref);
         node.dict.set(PDFName.of("Last"), lastChild.ref);
-        node.dict.set(PDFName.of("Count"), PDFNumber.of(descendantCount));
+        node.dict.set(PDFName.of("Count"), PDFNumber.of(countBuiltDescendants(node.children)));
         linkSiblings(node.children, node.ref);
       }
     }
@@ -152,7 +151,7 @@ export function setPdfOutline(pdfDoc: PDFDocument, chapters: ChapterNode[]): voi
   outlinesDict.set(PDFName.of("Type"), PDFName.of("Outlines"));
   outlinesDict.set(PDFName.of("First"), firstTop.ref);
   outlinesDict.set(PDFName.of("Last"), lastTop.ref);
-  outlinesDict.set(PDFName.of("Count"), PDFNumber.of(countDescendants(entries)));
+  outlinesDict.set(PDFName.of("Count"), PDFNumber.of(countBuiltDescendants(topNodes)));
 
   for (const node of allNodes) {
     context.assign(node.ref, node.dict);
