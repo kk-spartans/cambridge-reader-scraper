@@ -692,16 +692,14 @@ async function renderBookToPdf(params: {
         timeout: navigationTimeoutMs,
       });
 
+      await page.emulateMedia({ media: "print" });
       await waitForPageAssets(page);
 
-      // Reorder the DOM into visual reading order so text selection and
-      // copying follow the page layout instead of the source markup order.
       await normalizePrintReadingOrder(page);
 
       const pageSize = book.viewport;
 
       const partialPath = path.join(tempPdfDir, `${String(index + 1).padStart(5, "0")}.pdf`);
-      await page.emulateMedia({ media: "print" });
       await page.pdf({
         path: partialPath,
         printBackground: true,
@@ -889,14 +887,12 @@ export async function renderRemoteBookToPdf(params: {
             label: `page ${index + 1}`,
           });
 
+          await renderPage.emulateMedia({ media: "print" });
           await waitForPageAssets(renderPage);
 
-          // Reorder the DOM into visual reading order so text selection and
-          // copying follow the page layout instead of the source markup order.
           await normalizePrintReadingOrder(renderPage);
 
           const partialPath = path.join(tempPdfDir, `${String(index + 1).padStart(5, "0")}.pdf`);
-          await renderPage.emulateMedia({ media: "print" });
           await renderPage.pdf({
             path: partialPath,
             printBackground: true,

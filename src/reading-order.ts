@@ -6,13 +6,6 @@ export type ReadingOrderStats = {
   mergedParagraphs: number;
 };
 
-/**
- * Reorders the page DOM into visual reading order before printing.
- *
- * Must stay self-contained (no references outside its own body): Playwright
- * serializes the compiled function and runs it inside the browser. Kept
- * module-private; the entry point is {@link normalizePrintReadingOrder}.
- */
 function normalizeDocumentReadingOrder(): ReadingOrderStats {
   type Box = {
     element: Element;
@@ -23,14 +16,23 @@ function normalizeDocumentReadingOrder(): ReadingOrderStats {
     fontSize: number;
     fontWeight: string;
     fontStyle: string;
+    fontFamily: string;
+    color: string;
     textAlign: string;
     letterSpacing: string;
+    wordSpacing: string;
+    textTransform: string;
+    lineHeight: string;
+    opacity: string;
+    direction: string;
     position: string;
     tag: string;
     text: string;
     whiteSpace: string;
     transform: string;
     zIndex: string;
+    hasElementChildren: boolean;
+    decorated: boolean;
   };
 
   type BoxGroup = {
@@ -46,16 +48,7 @@ function normalizeDocumentReadingOrder(): ReadingOrderStats {
 
   const isRtl = getComputedStyle(body).direction === "rtl";
   const skipTags = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE", "HEAD", "SVG", "MATH"]);
-  const mergeableTags = new Set([
-    "DIV",
-    "P",
-    "SPAN",
-    "SECTION",
-    "ARTICLE",
-    "LI",
-    "BLOCKQUOTE",
-    "ASIDE",
-  ]);
+  const mergeableTags = new Set(["DIV", "SPAN"]);
   const listMarkerPattern = /^(?:[•‣▪◦–-]\s*|\d+[.)]\s*|[a-z][.)]\s*)/i;
 
   function isHidden(element: Element): boolean {
@@ -76,14 +69,27 @@ function normalizeDocumentReadingOrder(): ReadingOrderStats {
     return text.replace(/\s+/g, " ").trim();
   }
 
+  function isDecorated(style: CSSStyleDeclaration): boolean {
+    const transparentBackground =
+      style.backgroundColor === "transparent" || style.backgroundColor === "rgba(0, 0, 0, 0)";
+    return (
+      (style.backgroundImage !== "none" && style.backgroundImage !== "") ||
+      !transparentBackground ||
+      style.borderTopWidth !== "0px" ||
+      style.borderRightWidth !== "0px" ||
+      style.borderBottomWidth !== "0px" ||
+      style.borderLeftWidth !== "0px" ||
+      (style.boxShadow !== "none" && style.boxShadow !== "") ||
+      (style.textDecorationLine !== "none" && style.textDecorationLine !== "") ||
+      (style.overflow !== "visible" && style.overflow !== "")
+    );
+  }
+
   function collect(element: Element, boxes: Box[]): boolean {
     if (skipTags.has(element.tagName) || isHidden(element)) {
       return false;
     }
 
-    // Claim the whole subtree as one box when the element itself carries text.
-    // This keeps inline styled runs (bold, colored spans) glued to their line
-    // instead of becoming separate out-of-order blocks in the PDF.
     const text = directText(element);
     if (text) {
       const rect = element.getBoundingClientRect();
@@ -91,7 +97,6 @@ function normalizeDocumentReadingOrder(): ReadingOrderStats {
         return true;
       }
       const style = getComputedStyle(element);
-      // Full subtree text: nested inline runs belong to this line.
       const fullText = (element.textContent ?? "").replace(/\s+/g, " ").trim();
       boxes.push({
         element,
@@ -102,14 +107,23 @@ function normalizeDocumentReadingOrder(): ReadingOrderStats {
         fontSize: Number.parseFloat(style.fontSize) || 0,
         fontWeight: style.fontWeight,
         fontStyle: style.fontStyle,
+        fontFamily: style.fontFamily,
+        color: style.color,
         textAlign: style.textAlign,
         letterSpacing: style.letterSpacing,
+        wordSpacing: style.wordSpacing,
+        textTransform: style.textTransform,
+        lineHeight: style.lineHeight,
+        opacity: style.opacity,
+        direction: style.direction,
         position: style.position,
         tag: element.tagName,
         text: fullText,
         whiteSpace: style.whiteSpace,
         transform: style.transform,
         zIndex: style.zIndex,
+        hasElementChildren: element.children.length > 0,
+        decorated: isDecorated(style),
       });
       return true;
     }
@@ -256,8 +270,6 @@ function normalizeDocumentReadingOrder(): ReadingOrderStats {
   }
 
   function orderGroup(boxes: Box[]): Box[] {
-    // Full-width boxes (headings, figures) stay anchored by vertical position;
-    // the remaining boxes are ordered column-aware around them.
     const widths = boxes.map((box) => box.width).sort((a, b) => a - b);
     const maxWidth = widths[widths.length - 1] ?? 0;
     const fullWidth = boxes
@@ -318,10 +330,14 @@ function normalizeDocumentReadingOrder(): ReadingOrderStats {
     if (group.boxes.length < 2) {
       return false;
     }
-    // Reordering absolutely positioned siblings cannot change the visual
-    // layout, but it does fix the PDF text (selection/copy) order.
-    // Keep siblings with different z-index values in place so paint order
-    // (overlaps) is preserved.
+    const boxElements = new Set(group.boxes.map((box) => box.element));
+    const paintableChildren = Array.from(group.parent.children);
+    if (paintableChildren.length !== boxElements.size) {
+      return false;
+    }
+    if (paintableChildren.some((child) => !boxElements.has(child))) {
+      return false;
+    }
     const zIndex = group.boxes[0]?.zIndex;
     return group.boxes.every(
       (box) => (box.position === "absolute" || box.position === "fixed") && box.zIndex === zIndex,
@@ -365,8 +381,6 @@ function normalizeDocumentReadingOrder(): ReadingOrderStats {
         return true;
       }
     }
-    // Full-page scans rendered as <img>/<canvas>/<svg> with a transparent text
-    // overlay: reflowing the overlay would misalign it with the image.
     for (const media of Array.from(body.querySelectorAll("img, canvas, svg, video"))) {
       const rect = media.getBoundingClientRect();
       if (viewportArea > 0 && rect.width * rect.height >= 0.8 * viewportArea) {
@@ -379,7 +393,9 @@ function normalizeDocumentReadingOrder(): ReadingOrderStats {
   function canMerge(box: Box): boolean {
     return (
       mergeableTags.has(box.tag) &&
-      !box.whiteSpace.startsWith("pre") &&
+      box.whiteSpace === "normal" &&
+      !box.decorated &&
+      !box.hasElementChildren &&
       box.transform === "none" &&
       (box.position === "absolute" || box.position === "fixed")
     );
@@ -389,8 +405,10 @@ function normalizeDocumentReadingOrder(): ReadingOrderStats {
     let out = lines[0] ?? "";
     for (let i = 1; i < lines.length; i += 1) {
       const next = lines[i] ?? "";
-      if (out.endsWith("-") && /^[a-z]/.test(next)) {
+      if (out.endsWith("\u00ad")) {
         out = out.slice(0, -1) + next;
+      } else if (out.endsWith("-")) {
+        out += next;
       } else {
         out = `${out} ${next}`;
       }
@@ -404,28 +422,20 @@ function normalizeDocumentReadingOrder(): ReadingOrderStats {
     }
 
     for (const group of groupByParent(allBoxes)) {
-      // DOM order already matches visual order for reordered groups; for
-      // untouched groups only merge runs that are also visually consecutive.
-      const inDomOrder = [...group.boxes].sort((a, b) => {
-        const position = a.element.compareDocumentPosition(b.element);
-        if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
-          return -1;
-        }
-        if (position & Node.DOCUMENT_POSITION_PRECEDING) {
-          return 1;
-        }
-        return 0;
-      });
+      if (!isReorderable(group)) {
+        continue;
+      }
+      const inReadingOrder = orderGroup(group.boxes);
 
       let run: Box[] = [];
       const flush = (): void => {
         if (run.length >= 2) {
-          mergeRun(group.parent, run);
+          mergeRun(run);
         }
         run = [];
       };
 
-      for (const box of inDomOrder) {
+      for (const box of inReadingOrder) {
         const prev = run[run.length - 1];
         if (!prev || !canMerge(box) || !canMerge(prev)) {
           flush();
@@ -442,33 +452,40 @@ function normalizeDocumentReadingOrder(): ReadingOrderStats {
         }
         const sortedPitches = [...pitches].sort((a, b) => a - b);
         const medianPitch = sortedPitches[Math.floor(sortedPitches.length / 2)];
-        // Without an established rhythm, compare against the line height.
-        const reference = medianPitch ?? prev.height;
+        const reference = medianPitch ?? (Number.parseFloat(prev.lineHeight) || prev.height);
         const pitch = box.top - prev.top;
         const steadyPitch =
-          reference > 0 &&
-          pitch >= 0.5 * reference &&
-          pitch <= (medianPitch === undefined ? 1.5 : 1.6) * reference;
+          reference > 0 && Math.abs(pitch - reference) <= Math.max(1, reference * 0.1);
         const continues = !listMarkerPattern.test(box.text);
-        // A short line usually ends a paragraph (ragged last line), unless it
-        // is a hyphenated word split across lines.
         let paragraphBreak = false;
         if (run.length >= 2 && !prev.text.endsWith("-")) {
           const lengths = run.map((item) => item.text.length).sort((a, b) => a - b);
           const medianLength = lengths[Math.floor(lengths.length / 2)] ?? 0;
           paragraphBreak = medianLength > 0 && prev.text.length < 0.6 * medianLength;
         }
-        const sameColumn =
-          Math.abs(box.left - prev.left) <= 4 &&
-          Math.abs(box.width - prev.width) <= 6 &&
+        const sameStyle =
           box.fontSize === prev.fontSize &&
           box.fontWeight === prev.fontWeight &&
           box.fontStyle === prev.fontStyle &&
+          box.fontFamily === prev.fontFamily &&
+          box.color === prev.color &&
           box.textAlign === prev.textAlign &&
           box.letterSpacing === prev.letterSpacing &&
+          box.wordSpacing === prev.wordSpacing &&
+          box.textTransform === prev.textTransform &&
+          box.lineHeight === prev.lineHeight &&
+          box.opacity === prev.opacity &&
+          box.direction === prev.direction &&
+          box.whiteSpace === prev.whiteSpace &&
+          box.zIndex === prev.zIndex;
+        const sameColumn =
+          Math.abs(box.left - prev.left) <= 4 &&
+          Math.abs(box.width - prev.width) <= 6 &&
           box.position === prev.position &&
-          box.tag === prev.tag;
-        if (sameColumn && steadyPitch && continues && !paragraphBreak) {
+          box.tag === prev.tag &&
+          sameStyle;
+        const adjacent = box.element.previousElementSibling === prev.element;
+        if (sameColumn && steadyPitch && continues && !paragraphBreak && adjacent) {
           run.push(box);
         } else {
           flush();
@@ -479,13 +496,11 @@ function normalizeDocumentReadingOrder(): ReadingOrderStats {
     }
   }
 
-  function mergeRun(parent: Element, run: Box[]): void {
+  function mergeRun(run: Box[]): void {
     const first = run[0];
-    if (!first) {
+    if (!first || !(first.element instanceof HTMLElement)) {
       return;
     }
-    const lefts = run.map((box) => box.left).sort((a, b) => a - b);
-    const widths = run.map((box) => box.width).sort((a, b) => a - b);
     const pitches: number[] = [];
     for (let i = 1; i < run.length; i += 1) {
       const a = run[i - 1];
@@ -495,37 +510,16 @@ function normalizeDocumentReadingOrder(): ReadingOrderStats {
       }
     }
     pitches.sort((a, b) => a - b);
-    const left = lefts[Math.floor(lefts.length / 2)] ?? first.left;
-    const width = widths[Math.floor(widths.length / 2)] ?? first.width;
     const pitch = pitches[Math.floor(pitches.length / 2)] ?? first.height;
 
-    const source = getComputedStyle(first.element);
-    const merged = document.createElement("div");
+    const merged = first.element;
     merged.textContent = joinLines(
       run.map((box) => box.text.replace(/\s+/g, " ").trim()).filter(Boolean),
     );
-    merged.style.position = first.position;
-    merged.style.left = `${left}px`;
-    merged.style.top = `${first.top}px`;
-    merged.style.width = `${width}px`;
-    merged.style.margin = "0";
-    merged.style.padding = "0";
-    merged.style.border = "0";
-    merged.style.fontFamily = source.fontFamily;
-    merged.style.fontSize = source.fontSize;
-    merged.style.fontWeight = source.fontWeight;
-    merged.style.fontStyle = source.fontStyle;
-    merged.style.color = source.color;
-    merged.style.letterSpacing = source.letterSpacing;
-    merged.style.wordSpacing = source.wordSpacing;
-    merged.style.textAlign = source.textAlign;
+    merged.style.height = "auto";
     merged.style.lineHeight = pitch > 0 ? `${pitch}px` : "normal";
     merged.style.whiteSpace = "normal";
-    merged.style.opacity = source.opacity;
-    merged.style.zIndex = first.zIndex;
-
-    parent.insertBefore(merged, first.element);
-    for (const box of run) {
+    for (const box of run.slice(1)) {
       box.element.remove();
     }
     stats.mergedParagraphs += 1;
@@ -533,10 +527,6 @@ function normalizeDocumentReadingOrder(): ReadingOrderStats {
 }
 
 export async function normalizePrintReadingOrder(page: Page): Promise<ReadingOrderStats> {
-  // Playwright serializes the compiled function source into the browser.
-  // Some toolchains (esbuild/tsx with keepNames) annotate nested functions
-  // with a `__name(...)` helper that does not exist in the page, so provide
-  // a no-op shim when the serialized source references it.
   const source = normalizeDocumentReadingOrder.toString();
   const script = source.includes("__name(")
     ? `(() => { const __name = (fn) => fn; return (${source})(); })()`
