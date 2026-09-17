@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.7.0...v1.7.1) (2026-09-17)
+
+
+### Bug Fixes
+
+* reorder DOM into visual reading order before printing ([#20](https://github.com/kk-spartans/cambridge-reader-scraper/issues/20)) ([#27](https://github.com/kk-spartans/cambridge-reader-scraper/issues/27)) ([a5d8fb2](https://github.com/kk-spartans/cambridge-reader-scraper/commit/a5d8fb27fb833c89a9a1c25327aee31d7c04d235))
+
 # [1.7.0](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.6.0...v1.7.0) (2026-09-17)
 
 
