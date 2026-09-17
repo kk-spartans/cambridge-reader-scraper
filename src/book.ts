@@ -248,6 +248,114 @@ export function parseBookFromOpf(opfXml: string, opfPath: string): BookMetadata 
   return { title, isbn, opfPath, pagePaths, mediaPaths, tocPath, navPath };
 }
 
+function stripHtmlTags(value: string): string {
+  return value
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function findMatchingCloseTag(html: string, contentStart: number, tagName: string): number {
+  const pattern = new RegExp(`<\\/?${tagName}\\b[^>]*>`, "gi");
+  pattern.lastIndex = contentStart;
+  let depth = 1;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(html))) {
+    const isClose = match[0].startsWith("</");
+    const isSelfClosing = match[0].endsWith("/>");
+    if (isSelfClosing) {
+      continue;
+    }
+    if (isClose) {
+      depth -= 1;
+    } else {
+      depth += 1;
+    }
+    if (depth === 0 && match.index !== undefined) {
+      return match.index;
+    }
+  }
+  return -1;
+}
+
+function extractNestedLists(liInner: string): string[] {
+  const lists: string[] = [];
+  const pattern = /<(ol|ul)\b[^>]*>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(liInner))) {
+    const tagName = (match[1] ?? "ol").toLowerCase();
+    const contentStart = match.index + match[0].length;
+    const closeIndex = findMatchingCloseTag(liInner, contentStart, tagName);
+    if (closeIndex === -1) {
+      continue;
+    }
+    lists.push(liInner.slice(contentStart, closeIndex));
+    pattern.lastIndex = closeIndex + `</${tagName}>`.length;
+  }
+  return lists;
+}
+
+function parseListItems(
+  listInnerHtml: string,
+  opfDir: string,
+  pageIndexByPath: Map<string, number>,
+): ChapterNode[] {
+  const items: ChapterNode[] = [];
+  const liOpenPattern = /<li\b[^>]*>/gi;
+  let liOpen: RegExpExecArray | null;
+  let cursor = 0;
+  liOpenPattern.lastIndex = 0;
+
+  while (cursor < listInnerHtml.length) {
+    liOpenPattern.lastIndex = cursor;
+    liOpen = liOpenPattern.exec(listInnerHtml);
+    if (!liOpen || liOpen.index === undefined) {
+      break;
+    }
+    const contentStart = liOpen.index + liOpen[0].length;
+    const closeIndex = findMatchingCloseTag(listInnerHtml, contentStart, "li");
+    if (closeIndex === -1) {
+      break;
+    }
+    const liInner = listInnerHtml.slice(contentStart, closeIndex);
+    cursor = closeIndex + "</li>".length;
+
+    const anchorMatch = liInner.match(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/i);
+    const rawHref = anchorMatch?.[1]?.trim();
+    const rawTitle = anchorMatch?.[2] ?? "";
+    const nestedLists = extractNestedLists(liInner);
+    const children = nestedLists.flatMap((nested) =>
+      parseListItems(nested, opfDir, pageIndexByPath),
+    );
+
+    if (rawHref) {
+      const hrefNoHash = rawHref.split("#")[0] ?? rawHref;
+      if (hrefNoHash) {
+        const normalizedHref = path.posix.normalize(path.posix.join(opfDir, hrefNoHash));
+        const title = stripHtmlTags(rawTitle) || hrefNoHash;
+        items.push({
+          title,
+          href: normalizedHref,
+          pageIndex: pageIndexByPath.get(normalizedHref),
+          children,
+        });
+        continue;
+      }
+    }
+
+    // List item without a link (e.g. a grouping label): promote its children.
+    items.push(...children);
+  }
+
+  return items;
+}
+
 function parseHtmlTocDocument(
   html: string,
   tocPath: string,
@@ -258,34 +366,10 @@ function parseHtmlTocDocument(
   const navMatch = html.match(/<nav[^>]*>([\s\S]*?)<\/nav>/i);
   const navMarkup = navMatch?.[1] ?? html;
 
-  const listMatch = navMarkup.match(/<ol[^>]*>([\s\S]*?)<\/ol>/i);
-  const root = listMatch?.[1] ?? navMarkup;
+  const topLists = extractNestedLists(navMarkup);
+  const source = topLists.length ? topLists.join("") : navMarkup;
 
-  const items: ChapterNode[] = [];
-  const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
-  let liMatch: RegExpExecArray | null = liRegex.exec(root);
-
-  while (liMatch) {
-    const content = liMatch[1] ?? "";
-    const anchorMatch = content.match(/<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/i);
-    if (anchorMatch?.[1]) {
-      const rawHref = anchorMatch[1];
-      const hrefNoHash = rawHref.split("#")[0] ?? rawHref;
-      const normalizedHref = path.posix.normalize(path.posix.join(opfDir, hrefNoHash));
-      const title = (anchorMatch[2] ?? "").replace(/<[^>]+>/g, "").trim();
-
-      items.push({
-        title: title || hrefNoHash,
-        href: normalizedHref,
-        pageIndex: pageIndexByPath.get(normalizedHref),
-        children: [],
-      });
-    }
-
-    liMatch = liRegex.exec(root);
-  }
-
-  return items;
+  return parseListItems(source, opfDir, pageIndexByPath);
 }
 
 function parseNcxNode(
@@ -312,50 +396,96 @@ function parseNcxNode(
   };
 }
 
-export function extractChaptersFromArchive(buffer: Buffer, book: BookInfo): ChapterNode[] {
-  const archive = parseCustomArchive(buffer);
-  const entryByName = new Map(archive.entries.map((entry) => [entry.name, entry]));
+function buildPageIndexByPath(pagePaths: string[]): Map<string, number> {
   const pageIndexByPath = new Map<string, number>();
-  for (let index = 0; index < book.pagePaths.length; index += 1) {
-    const pagePath = book.pagePaths[index];
+  for (let index = 0; index < pagePaths.length; index += 1) {
+    const pagePath = pagePaths[index];
     if (pagePath) {
       pageIndexByPath.set(pagePath, index + 1);
     }
   }
+  return pageIndexByPath;
+}
 
-  if (book.navPath) {
-    const navEntry = entryByName.get(book.navPath);
-    if (navEntry) {
-      try {
-        const html = entryToUtf8(buffer, navEntry);
-        const chapters = parseHtmlTocDocument(html, book.navPath, pageIndexByPath);
-        if (chapters.length) {
-          return chapters;
-        }
-      } catch {
-        // ignore and try ncx
+function parseNcxDocument(
+  ncx: string,
+  tocPath: string,
+  pageIndexByPath: Map<string, number>,
+): ChapterNode[] {
+  const parsed = XML.parse(ncx) as Record<string, unknown>;
+  const ncxRoot = parsed.ncx as Record<string, unknown>;
+  const navMap = (ncxRoot?.navMap ?? {}) as Record<string, unknown>;
+  const navPoints = asArray(navMap.navPoint).map((item) => item as Record<string, unknown>);
+  const tocDir = path.posix.dirname(tocPath);
+  return navPoints.map((node) => parseNcxNode(node, tocDir, pageIndexByPath));
+}
+
+export function extractChaptersFromContents(params: {
+  navHtml?: string;
+  navPath?: string;
+  ncxXml?: string;
+  tocPath?: string;
+  pagePaths: string[];
+}): ChapterNode[] {
+  const pageIndexByPath = buildPageIndexByPath(params.pagePaths);
+
+  if (params.navHtml !== undefined && params.navPath) {
+    try {
+      const chapters = parseHtmlTocDocument(params.navHtml, params.navPath, pageIndexByPath);
+      if (chapters.length) {
+        return chapters;
       }
+    } catch {
+      // ignore and try ncx
     }
   }
 
-  if (book.tocPath) {
-    const tocEntry = entryByName.get(book.tocPath);
-    if (tocEntry) {
-      try {
-        const ncx = entryToUtf8(buffer, tocEntry);
-        const parsed = XML.parse(ncx) as Record<string, unknown>;
-        const ncxRoot = parsed.ncx as Record<string, unknown>;
-        const navMap = (ncxRoot?.navMap ?? {}) as Record<string, unknown>;
-        const navPoints = asArray(navMap.navPoint).map((item) => item as Record<string, unknown>);
-        const tocDir = path.posix.dirname(book.tocPath);
-        return navPoints.map((node) => parseNcxNode(node, tocDir, pageIndexByPath));
-      } catch {
-        return [];
-      }
+  if (params.ncxXml !== undefined && params.tocPath) {
+    try {
+      return parseNcxDocument(params.ncxXml, params.tocPath, pageIndexByPath);
+    } catch {
+      return [];
     }
   }
 
   return [];
+}
+
+export function extractChaptersFromArchive(buffer: Buffer, book: BookInfo): ChapterNode[] {
+  const archive = parseCustomArchive(buffer);
+  const entryByName = new Map(archive.entries.map((entry) => [entry.name, entry]));
+
+  let navHtml: string | undefined;
+  if (book.navPath) {
+    const navEntry = entryByName.get(book.navPath);
+    if (navEntry) {
+      try {
+        navHtml = entryToUtf8(buffer, navEntry);
+      } catch {
+        navHtml = undefined;
+      }
+    }
+  }
+
+  let ncxXml: string | undefined;
+  if (book.tocPath) {
+    const tocEntry = entryByName.get(book.tocPath);
+    if (tocEntry) {
+      try {
+        ncxXml = entryToUtf8(buffer, tocEntry);
+      } catch {
+        ncxXml = undefined;
+      }
+    }
+  }
+
+  return extractChaptersFromContents({
+    navHtml,
+    navPath: book.navPath,
+    ncxXml,
+    tocPath: book.tocPath,
+    pagePaths: book.pagePaths,
+  });
 }
 
 export async function discoverBooks(userdataRoot: string): Promise<BookInfo[]> {

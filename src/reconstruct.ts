@@ -8,7 +8,8 @@ import { chromium, type BrowserContext, type Frame, type Page } from "playwright
 import { PDFDocument } from "pdf-lib";
 
 import { extractEntryBuffer, normalizeArchiveRelativePath, parseCustomArchive } from "./archive.js";
-import { extractChaptersFromArchive, isMediaPath } from "./book.js";
+import { extractChaptersFromArchive, extractChaptersFromContents, isMediaPath } from "./book.js";
+import { setPdfOutline } from "./outline.js";
 import { safeFileName } from "./paths.js";
 import type {
   BookInfo,
@@ -535,6 +536,7 @@ function firstMatch(value: string, pattern: RegExp): string | undefined {
 async function renderImageBackedBookToPdf(params: {
   materializedBookBasePath: string;
   book: BookInfo;
+  chapters?: ChapterNode[];
   outputPdfPath: string;
   onProgress?: (progress: {
     completedPages: number;
@@ -542,7 +544,7 @@ async function renderImageBackedBookToPdf(params: {
     status: "rendering" | "processing" | "done";
   }) => void;
 }): Promise<boolean> {
-  const { materializedBookBasePath, book, outputPdfPath, onProgress } = params;
+  const { materializedBookBasePath, book, chapters, outputPdfPath, onProgress } = params;
   const pdf = await PDFDocument.create();
 
   for (let index = 0; index < book.pagePaths.length; index += 1) {
@@ -607,6 +609,13 @@ async function renderImageBackedBookToPdf(params: {
   pdf.setTitle(book.title);
   pdf.setAuthor("Cambridge Reader");
   pdf.setSubject(`ISBN ${book.isbn}`);
+  const chapterKeywords = chapters?.length ? buildChapterKeywords(chapters) : [];
+  if (chapterKeywords.length) {
+    pdf.setKeywords(chapterKeywords);
+  }
+  if (chapters?.length) {
+    setPdfOutline(pdf, chapters);
+  }
   await fs.writeFile(outputPdfPath, await pdf.save());
 
   onProgress?.({
@@ -801,6 +810,9 @@ async function renderBookToPdf(params: {
     if (chapterKeywords.length) {
       renderedPdf.setKeywords(chapterKeywords);
     }
+    if (chapters.length) {
+      setPdfOutline(renderedPdf, chapters);
+    }
 
     const finalizedPdfBytes = await renderedPdf.save();
     await fs.writeFile(outputPdfPath, finalizedPdfBytes);
@@ -818,6 +830,91 @@ async function renderBookToPdf(params: {
     }
     await browser.close();
   }
+}
+
+async function fetchRemoteTextDocument(params: {
+  frame?: Frame;
+  context: BrowserContext;
+  remoteUrl: string;
+}): Promise<string | undefined> {
+  const { frame, context, remoteUrl } = params;
+  if (frame) {
+    try {
+      const buffer = await fetchViewerAsset(frame, remoteUrl);
+      return buffer.toString("utf8");
+    } catch {
+      // fall through to a direct context request
+    }
+  }
+
+  try {
+    const response = await context.request.get(remoteUrl, { timeout: 10_000 });
+    if (response.ok()) {
+      return await response.text();
+    }
+  } catch {
+    // ignore - chapters are best-effort
+  }
+
+  return undefined;
+}
+
+async function loadRemoteChapters(params: {
+  remoteBookBaseUrl: string;
+  book: BookInfo;
+  context: BrowserContext;
+  frame?: Frame;
+  materializedBookBasePath?: string;
+}): Promise<ChapterNode[]> {
+  const { remoteBookBaseUrl, book, context, frame, materializedBookBasePath } = params;
+  if (!book.navPath && !book.tocPath) {
+    return [];
+  }
+
+  let navHtml: string | undefined;
+  let ncxXml: string | undefined;
+
+  if (materializedBookBasePath) {
+    if (book.navPath) {
+      navHtml = await fs
+        .readFile(path.join(materializedBookBasePath, ...book.navPath.split("/")), "utf8")
+        .catch(() => undefined);
+    }
+    if (book.tocPath) {
+      ncxXml = await fs
+        .readFile(path.join(materializedBookBasePath, ...book.tocPath.split("/")), "utf8")
+        .catch(() => undefined);
+    }
+  }
+
+  // The asset materializer only follows page assets, so the EPUB nav/NCX
+  // documents usually still need an explicit authenticated fetch.
+  if (book.navPath && navHtml === undefined) {
+    navHtml = await fetchRemoteTextDocument({
+      frame,
+      context,
+      remoteUrl: new URL(book.navPath, remoteBookBaseUrl).href,
+    });
+  }
+  if (book.tocPath && ncxXml === undefined) {
+    ncxXml = await fetchRemoteTextDocument({
+      frame,
+      context,
+      remoteUrl: new URL(book.tocPath, remoteBookBaseUrl).href,
+    });
+  }
+
+  if (navHtml === undefined && ncxXml === undefined) {
+    return [];
+  }
+
+  return extractChaptersFromContents({
+    navHtml,
+    navPath: book.navPath,
+    ncxXml,
+    tocPath: book.tocPath,
+    pagePaths: book.pagePaths,
+  });
 }
 
 export async function renderRemoteBookToPdf(params: {
@@ -906,11 +1003,20 @@ export async function renderRemoteBookToPdf(params: {
       : [];
     await fs.rm(tempPdfDir, { recursive: true, force: true });
     await fs.mkdir(tempPdfDir, { recursive: true });
+    const remoteChapters = await loadRemoteChapters({
+      remoteBookBaseUrl,
+      book,
+      context,
+      frame: viewerFrame,
+      materializedBookBasePath,
+    });
+
     if (
       materializedBookBasePath &&
       (await renderImageBackedBookToPdf({
         materializedBookBasePath,
         book,
+        chapters: remoteChapters,
         outputPdfPath,
         onProgress,
       }))
@@ -1014,6 +1120,14 @@ export async function renderRemoteBookToPdf(params: {
     renderedPdf.setTitle(book.title);
     renderedPdf.setAuthor("Cambridge Reader");
     renderedPdf.setSubject(`ISBN ${book.isbn}`);
+
+    const remoteChapterKeywords = buildChapterKeywords(remoteChapters);
+    if (remoteChapterKeywords.length) {
+      renderedPdf.setKeywords(remoteChapterKeywords);
+    }
+    if (remoteChapters.length) {
+      setPdfOutline(renderedPdf, remoteChapters);
+    }
 
     const finalizedPdfBytes = await renderedPdf.save();
     await fs.writeFile(outputPdfPath, finalizedPdfBytes);
