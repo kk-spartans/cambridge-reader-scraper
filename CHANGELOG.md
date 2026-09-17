@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.6.0...v1.7.0) (2026-09-17)
+
+
+### Features
+
+* embed chapter outline as PDF bookmarks ([#24](https://github.com/kk-spartans/cambridge-reader-scraper/issues/24)) ([0474803](https://github.com/kk-spartans/cambridge-reader-scraper/commit/047480390d8283bd6409f00e72a8320d26b74dd6)), closes [#19](https://github.com/kk-spartans/cambridge-reader-scraper/issues/19)
+
 # [1.6.0](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.5.3...v1.6.0) (2026-09-17)
 
 ### Features
