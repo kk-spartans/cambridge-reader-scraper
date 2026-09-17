@@ -17,6 +17,7 @@ flag "--page-timeout-ms <value>" help="page navigation timeout in milliseconds"
 flag "--max-pages <value>" help="render only the first N pages of each book"
 flag "--concurrency <value>" help="number of books to process in parallel"
 flag "--keep-extracted" help="keep extracted book files after rendering"
+flag "--skip-media" help="skip downloading supplementary audio/video files"
 flag "--no-tui" help="disable the interactive selection and progress UI"
 flag "--help" help="show CLI help"
 

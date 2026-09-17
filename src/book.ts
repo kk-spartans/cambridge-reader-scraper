@@ -8,6 +8,42 @@ import { detectBlobRoots } from "./paths.js";
 import type { BookInfo, BookMetadata, ChapterNode } from "./types.js";
 
 export const DEFAULT_VIEWPORT = { width: 957, height: 1199 };
+
+const MEDIA_EXTENSIONS = new Set([
+  ".mp3",
+  ".mp4",
+  ".m4a",
+  ".m4v",
+  ".ogg",
+  ".oga",
+  ".ogv",
+  ".wav",
+  ".wave",
+  ".webm",
+  ".mov",
+  ".aac",
+  ".flac",
+  ".opus",
+  ".vtt",
+  ".srt",
+]);
+
+export function isMediaPath(filePath: string): boolean {
+  const withoutQuery = filePath.split(/[?#]/, 1)[0] ?? filePath;
+  const extension = path.posix.extname(withoutQuery).toLowerCase();
+  return MEDIA_EXTENSIONS.has(extension);
+}
+
+function isMediaMimeType(mediaType: string): boolean {
+  const normalized = mediaType.trim().toLowerCase().split(";")[0] ?? "";
+  return (
+    normalized.startsWith("audio/") ||
+    normalized.startsWith("video/") ||
+    normalized === "application/ogg" ||
+    normalized === "application/vnd.apple.mpegurl" ||
+    normalized === "text/vtt"
+  );
+}
 const XML = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "@_",
@@ -189,7 +225,27 @@ export function parseBookFromOpf(opfXml: string, opfPath: string): BookMetadata 
 
   const tocPath = tocHref ? path.posix.normalize(path.posix.join(opfDir, tocHref)) : undefined;
 
-  return { title, isbn, opfPath, pagePaths, tocPath, navPath };
+  const pagePathSet = new Set(pagePaths);
+  const mediaPaths: string[] = [];
+  const seenMedia = new Set<string>();
+  for (const item of manifestItems) {
+    const href = typeof item["@_href"] === "string" ? item["@_href"] : "";
+    const mediaType = typeof item["@_media-type"] === "string" ? item["@_media-type"] : "";
+    if (!href) {
+      continue;
+    }
+    if (!isMediaMimeType(mediaType) && !isMediaPath(href)) {
+      continue;
+    }
+    const normalized = path.posix.normalize(path.posix.join(opfDir, href.split("#")[0] ?? href));
+    if (!normalized || pagePathSet.has(normalized) || seenMedia.has(normalized)) {
+      continue;
+    }
+    seenMedia.add(normalized);
+    mediaPaths.push(normalized);
+  }
+
+  return { title, isbn, opfPath, pagePaths, mediaPaths, tocPath, navPath };
 }
 
 function stripHtmlTags(value: string): string {
@@ -490,12 +546,25 @@ export async function discoverBooks(userdataRoot: string): Promise<BookInfo[]> {
       }
     }
 
+    const mediaPaths = [...metadata.mediaPaths];
+    const seenMediaPaths = new Set(mediaPaths);
+    for (const entry of archive.entries) {
+      if (entry.isDirectory || seenMediaPaths.has(entry.name)) {
+        continue;
+      }
+      if (isMediaPath(entry.name)) {
+        seenMediaPaths.add(entry.name);
+        mediaPaths.push(entry.name);
+      }
+    }
+
     books.push({
       blobPath,
       blobName: fileName,
       title: metadata.title,
       isbn: metadata.isbn,
       pagePaths: metadata.pagePaths,
+      mediaPaths,
       opfPath: metadata.opfPath,
       tocPath: metadata.tocPath,
       navPath: metadata.navPath,

@@ -39,6 +39,7 @@ async function runInspectCommand(books: BookInfo[], userdataRoot: string): Promi
     console.log(`  Blob: ${book.blobName} (${book.blobPath})`);
     console.log(`  Entries: ${book.entryCount}`);
     console.log(`  Spine pages: ${book.pagePaths.length}`);
+    console.log(`  Media files: ${book.mediaPaths.length}`);
     console.log(`  Viewport: ${book.viewport.width}x${book.viewport.height}`);
     console.log(`  Encrypted tail marker: ${book.hasEncryptedTailMarker ? "yes" : "no"}`);
   }
@@ -49,6 +50,7 @@ function toUiBooks(books: BookInfo[]): UiBook[] {
     isbn: book.isbn,
     title: book.title,
     pageCount: book.pagePaths.length,
+    mediaCount: book.mediaPaths.length,
     viewportWidth: book.viewport.width,
     viewportHeight: book.viewport.height,
     entryCount: book.entryCount,
@@ -61,6 +63,7 @@ function browserBooksToUiBooks(books: BrowserAccountBook[]): UiBook[] {
     isbn: book.readerUrl,
     title: book.bookTitle,
     pageCount: 0,
+    mediaCount: 0,
     viewportWidth: 0,
     viewportHeight: 0,
     entryCount: 0,
@@ -127,6 +130,7 @@ async function runReconstructCommand(args: CliArgs, books: BookInfo[]): Promise<
   const navigationTimeoutMs = getPositiveIntegerArg(args, "page-timeout-ms", 20000);
   const maxPages = getPositiveIntegerArg(args, "max-pages", 0) || undefined;
   const keepExtracted = hasFlag(args, "keep-extracted");
+  const skipMedia = hasFlag(args, "skip-media") || hasFlag(args, "no-media");
   const concurrency = getPositiveIntegerArg(args, "concurrency", 1);
 
   const selectedBooks = await selectBooks(args, books);
@@ -144,6 +148,7 @@ async function runReconstructCommand(args: CliArgs, books: BookInfo[]): Promise<
         keepExtracted,
         concurrency,
         maxPages,
+        skipMedia,
         emit: () => {},
       })
     : await runWithInkProgress({
@@ -158,6 +163,7 @@ async function runReconstructCommand(args: CliArgs, books: BookInfo[]): Promise<
             keepExtracted,
             concurrency,
             maxPages,
+            skipMedia,
             emit,
           }),
       });
@@ -165,6 +171,13 @@ async function runReconstructCommand(args: CliArgs, books: BookInfo[]): Promise<
   if (summary.succeeded.length) {
     console.log("\nGenerated PDFs:");
     for (const filePath of summary.succeeded) {
+      console.log(`- ${filePath}`);
+    }
+  }
+
+  if (summary.mediaFiles.length) {
+    console.log("\nSaved media files:");
+    for (const filePath of summary.mediaFiles) {
       console.log(`- ${filePath}`);
     }
   }
@@ -191,6 +204,7 @@ async function runBrowserScrapeCommand(args: CliArgs): Promise<void> {
     : path.resolve(requestedBrowserPath ?? detectPlaywrightBrowserExecutable());
   const navigationTimeoutMs = getPositiveIntegerArg(args, "page-timeout-ms", 30000);
   const maxPages = getPositiveIntegerArg(args, "max-pages", 0) || undefined;
+  const skipMedia = hasFlag(args, "skip-media") || hasFlag(args, "no-media");
   const readerUrl = getStringArg(args, "url");
   const email = getStringArg(args, "email");
   const password = getStringArg(args, "password");
@@ -243,7 +257,7 @@ async function runBrowserScrapeCommand(args: CliArgs): Promise<void> {
   const renderSelectedBooks = async (
     emit: (update: ProgressUpdate) => void,
   ): Promise<ReconstructionSummary> => {
-    const summary: ReconstructionSummary = { succeeded: [], failed: [] };
+    const summary: ReconstructionSummary = { succeeded: [], failed: [], mediaFiles: [] };
     for (const book of selectedBooks) {
       const result = await runBrowserScrape({
         readerUrl: book.readerUrl,
@@ -256,11 +270,13 @@ async function runBrowserScrapeCommand(args: CliArgs): Promise<void> {
         cdpUrl,
         navigationTimeoutMs,
         maxPages,
+        skipMedia,
         log: disableProgressTui ? (message) => console.log(message) : undefined,
         emit,
       });
       summary.succeeded.push(...result.succeeded);
       summary.failed.push(...result.failed);
+      summary.mediaFiles.push(...result.mediaFiles);
     }
     return summary;
   };
@@ -273,6 +289,13 @@ async function runBrowserScrapeCommand(args: CliArgs): Promise<void> {
   if (summary.succeeded.length) {
     console.log("\nGenerated PDFs:");
     for (const filePath of summary.succeeded) {
+      console.log(`- ${filePath}`);
+    }
+  }
+
+  if (summary.mediaFiles.length) {
+    console.log("\nSaved media files:");
+    for (const filePath of summary.mediaFiles) {
       console.log(`- ${filePath}`);
     }
   }

@@ -86,6 +86,11 @@ const OPTIONS: OptionDefinition[] = [
     expectsValue: false,
   },
   {
+    name: "--skip-media",
+    description: "skip downloading supplementary audio/video files",
+    expectsValue: false,
+  },
+  {
     name: "--no-tui",
     description: "disable the interactive selection and progress UI",
     expectsValue: false,
