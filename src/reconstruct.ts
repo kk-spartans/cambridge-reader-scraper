@@ -11,6 +11,7 @@ import { extractEntryBuffer, normalizeArchiveRelativePath, parseCustomArchive } 
 import { extractChaptersFromArchive, extractChaptersFromContents, isMediaPath } from "./book.js";
 import { setPdfOutline } from "./outline.js";
 import { safeFileName } from "./paths.js";
+import { normalizePrintReadingOrder } from "./reading-order.js";
 import type {
   BookInfo,
   BookRunFailure,
@@ -761,12 +762,14 @@ async function renderBookToPdf(params: {
         timeout: navigationTimeoutMs,
       });
 
+      await page.emulateMedia({ media: "print" });
       await waitForPageAssets(page);
+
+      await normalizePrintReadingOrder(page);
 
       const pageSize = book.viewport;
 
       const partialPath = path.join(tempPdfDir, `${String(index + 1).padStart(5, "0")}.pdf`);
-      await page.emulateMedia({ media: "print" });
       await page.pdf({
         path: partialPath,
         printBackground: true,
@@ -1070,10 +1073,12 @@ export async function renderRemoteBookToPdf(params: {
             label: `page ${index + 1}`,
           });
 
+          await renderPage.emulateMedia({ media: "print" });
           await waitForPageAssets(renderPage);
 
+          await normalizePrintReadingOrder(renderPage);
+
           const partialPath = path.join(tempPdfDir, `${String(index + 1).padStart(5, "0")}.pdf`);
-          await renderPage.emulateMedia({ media: "print" });
           await renderPage.pdf({
             path: partialPath,
             printBackground: true,

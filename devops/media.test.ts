@@ -240,7 +240,7 @@ for (const branch of ["image-backed", "normal"] as const) {
         assert.equal(fixture.pageCalls.printed, fixture.pageCalls.opened);
         assert.equal(fixture.pageCalls.navigated, fixture.pageCalls.opened);
         assert.equal(fixture.pageCalls.emulated, fixture.pageCalls.opened);
-        assert.equal(fixture.pageCalls.evaluated, fixture.pageCalls.opened * 2);
+        assert.equal(fixture.pageCalls.evaluated, fixture.pageCalls.opened * 3);
         assert.deepEqual(fixture.fallbackRequests, []);
       });
       await t.test("copies MIME-only audio and odd-extension video with exact bytes", async () => {
