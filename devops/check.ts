@@ -92,6 +92,12 @@ const steps: Array<{ name: string; run: () => Promise<void> | void }> = [
     },
   },
   {
+    name: "test",
+    run: () => {
+      run("tsx", ["--test", "devops/media.test.ts"]);
+    },
+  },
+  {
     name: "oxlint",
     run: () => {
       run("oxlint", [

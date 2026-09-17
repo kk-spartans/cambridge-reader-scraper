@@ -405,19 +405,20 @@ async function listFilesRecursive(rootDir: string): Promise<string[]> {
 async function copyMediaFilesToOutDir(params: {
   assetRoot: string;
   mediaOutDir: string;
+  knownRelativePaths?: string[];
 }): Promise<string[]> {
-  const allFiles = await listFilesRecursive(params.assetRoot);
+  const { assetRoot, mediaOutDir, knownRelativePaths } = params;
+  const knownFiles = new Set(
+    (knownRelativePaths ?? []).map((relative) => path.resolve(assetRoot, relative)),
+  );
+  const allFiles = await listFilesRecursive(assetRoot);
   const mediaFiles = allFiles
-    .filter((file) => isMediaPath(file))
-    .sort((a, b) => a.localeCompare(b));
-  if (!mediaFiles.length) {
-    return [];
-  }
-
+    .filter((file) => isMediaPath(file) || knownFiles.has(path.resolve(file)))
+    .sort((left, right) => left.localeCompare(right));
   const saved: string[] = [];
   for (const source of mediaFiles) {
-    const relative = path.relative(params.assetRoot, source);
-    const destination = path.join(params.mediaOutDir, ...relative.split(path.sep));
+    const relative = path.relative(assetRoot, source);
+    const destination = path.join(mediaOutDir, relative);
     await fs.mkdir(path.dirname(destination), { recursive: true });
     await fs.copyFile(source, destination);
     saved.push(destination);
@@ -469,18 +470,27 @@ async function materializeRemoteBookAssets(params: {
   remoteBookBaseUrl: string;
   book: BookInfo;
   destinationDir: string;
+  skipMedia?: boolean;
 }): Promise<string> {
-  const { frame, remoteBookBaseUrl, book, destinationDir } = params;
+  const { frame, remoteBookBaseUrl, book, destinationDir, skipMedia } = params;
   await fs.rm(destinationDir, { recursive: true, force: true });
   await fs.mkdir(destinationDir, { recursive: true });
 
-  let pending = [...book.pagePaths, ...book.mediaPaths].map(
-    (relativePath) => new URL(relativePath, remoteBookBaseUrl).href,
-  );
+  const canonicalUrl = (value: string): string => {
+    const url = new URL(value, remoteBookBaseUrl);
+    url.hash = "";
+    return url.href;
+  };
+  const mediaUrls = new Set(book.mediaPaths.map(canonicalUrl));
+  let pending = [...book.pagePaths, ...(skipMedia ? [] : book.mediaPaths)].map(canonicalUrl);
   const seen = new Set<string>();
 
   while (pending.length) {
-    const batch = pending.filter((remoteUrl) => remoteUrl && !seen.has(remoteUrl));
+    const batch = [...new Set(pending)].filter(
+      (remoteUrl) =>
+        !seen.has(remoteUrl) &&
+        !(skipMedia && (mediaUrls.has(remoteUrl) || isMediaPath(remoteUrl))),
+    );
     pending = [];
     for (const remoteUrl of batch) {
       seen.add(remoteUrl);
@@ -495,10 +505,12 @@ async function materializeRemoteBookAssets(params: {
       const pathname = new URL(remoteUrl).pathname.toLowerCase();
       if (pathname.endsWith(".xhtml") || pathname.endsWith(".html") || pathname.endsWith(".css")) {
         const text = buffer.toString("utf8");
-        return remoteAssetUrlsFromText(text, remoteUrl).filter(
-          (assetUrl) =>
-            new URL(assetUrl).origin === new URL(remoteBookBaseUrl).origin && !seen.has(assetUrl),
-        );
+        return remoteAssetUrlsFromText(text, remoteUrl)
+          .map(canonicalUrl)
+          .filter(
+            (assetUrl) =>
+              new URL(assetUrl).origin === new URL(remoteBookBaseUrl).origin && !seen.has(assetUrl),
+          );
       }
 
       return [];
@@ -614,7 +626,7 @@ async function mapWithConcurrency<T, U>(
   let cursor = 0;
   const workerCount = Math.max(1, Math.min(concurrency, items.length));
 
-  await Promise.all(
+  const workers = await Promise.allSettled(
     Array.from({ length: workerCount }, async () => {
       while (cursor < items.length) {
         const index = cursor;
@@ -627,6 +639,10 @@ async function mapWithConcurrency<T, U>(
     }),
   );
 
+  const failure = workers.find((worker) => worker.status === "rejected");
+  if (failure) {
+    throw failure.reason;
+  }
   return results;
 }
 
@@ -868,19 +884,28 @@ export async function renderRemoteBookToPdf(params: {
   const partialPdfPaths: string[] = [];
   const tempPdfDir = path.join(tempRoot, `${book.isbn}_remote_page_pdfs`);
   const materializedAssetRoot = path.join(tempRoot, `${book.isbn}_remote_assets`);
-  const materializedBookBasePath = viewerFrame
-    ? await materializeRemoteBookAssets({
-        frame: viewerFrame,
-        remoteBookBaseUrl,
-        book,
-        destinationDir: materializedAssetRoot,
-      })
-    : undefined;
   let assetServer: Awaited<ReturnType<typeof serveDirectory>> | undefined;
-  await fs.rm(tempPdfDir, { recursive: true, force: true });
-  await fs.mkdir(tempPdfDir, { recursive: true });
 
   try {
+    const materializedBookBasePath = viewerFrame
+      ? await materializeRemoteBookAssets({
+          frame: viewerFrame,
+          remoteBookBaseUrl,
+          book,
+          destinationDir: materializedAssetRoot,
+          skipMedia,
+        })
+      : undefined;
+    const knownRelativePaths = materializedBookBasePath
+      ? book.mediaPaths.map((relative) =>
+          path.relative(
+            materializedBookBasePath,
+            localPathForRemoteUrl(materializedAssetRoot, new URL(relative, remoteBookBaseUrl).href),
+          ),
+        )
+      : [];
+    await fs.rm(tempPdfDir, { recursive: true, force: true });
+    await fs.mkdir(tempPdfDir, { recursive: true });
     if (
       materializedBookBasePath &&
       (await renderImageBackedBookToPdf({
@@ -894,7 +919,8 @@ export async function renderRemoteBookToPdf(params: {
         return { mediaFiles: [] };
       }
       const mediaFiles = await copyMediaFilesToOutDir({
-        assetRoot: materializedAssetRoot,
+        assetRoot: materializedBookBasePath,
+        knownRelativePaths,
         mediaOutDir: mediaOutDirForPdf(outputPdfPath),
       });
       return { mediaFiles };
@@ -1003,7 +1029,8 @@ export async function renderRemoteBookToPdf(params: {
     }
     const mediaFiles = materializedBookBasePath
       ? await copyMediaFilesToOutDir({
-          assetRoot: materializedAssetRoot,
+          assetRoot: materializedBookBasePath,
+          knownRelativePaths,
           mediaOutDir: mediaOutDirForPdf(outputPdfPath),
         })
       : [];
@@ -1011,6 +1038,9 @@ export async function renderRemoteBookToPdf(params: {
   } finally {
     await new Promise<void>((resolve) => assetServer?.server.close(() => resolve()) ?? resolve());
     await fs.rm(tempPdfDir, { recursive: true, force: true });
+    if (viewerFrame) {
+      await fs.rm(materializedAssetRoot, { recursive: true, force: true });
+    }
     if (!providedContext && !cdpUrl) {
       await context.close();
     }
@@ -1130,6 +1160,7 @@ export async function runReconstruction(params: {
       if (!skipMedia) {
         const savedMedia = await copyMediaFilesToOutDir({
           assetRoot: extractedDir,
+          knownRelativePaths: book.mediaPaths,
           mediaOutDir: mediaOutDirForPdf(outputPdfPath),
         });
         mediaFiles.push(...savedMedia);

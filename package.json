@@ -20,6 +20,7 @@
   "scripts": {
     "start": "tsx watch src/index.ts",
     "check": "tsx devops/check.ts",
+    "test": "tsx --test devops/media.test.ts",
     "release": "semantic-release --extends ./devops/semantic-release.json",
     "prepack": "pnpm run check",
     "prepublishOnly": "pnpm run check"
