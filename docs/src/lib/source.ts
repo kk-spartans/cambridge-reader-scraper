@@ -1,6 +1,6 @@
 import { docs } from "collections/server";
 import { type InferPageType, loader } from "fumadocs-core/source";
-import { docsContentRoute, docsImageRoute, docsRoute } from "./shared";
+import { docsContentRoute, docsImageRoute, docsRoute, siteUrl } from "./shared";
 
 // See https://fumadocs.dev/docs/headless/source-api for more info
 export const source = loader({
@@ -14,7 +14,7 @@ export function getPageImage(page: InferPageType<typeof source>) {
 
   return {
     segments,
-    url: `${docsImageRoute}/${segments.join("/")}`,
+    url: `${siteUrl}${docsImageRoute}/${segments.join("/")}`,
   };
 }
 

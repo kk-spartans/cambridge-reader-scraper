@@ -19,37 +19,37 @@ books; other value options use the last occurrence.
 
 ## Options
 
-| Option                   | Description                                                                                   |
-| ------------------------ | --------------------------------------------------------------------------------------------- |
-| `--userdata <path>`      | Override the Cambridge Reader userdata root (local-blob mode).                                |
-| `--app-name <name>`      | Override the app name used during default userdata discovery.                                 |
-| `--isbn <isbn>`          | Restrict work to one or more specific ISBNs (repeatable).                                     |
-| `--outdir <path>`        | Write PDFs here and skip the output-folder prompt. Hidden in Docker (`/out` is always used).  |
-| `--workdir <path>`       | Override the temp dir (`<outdir>/_extracted`, or `<outdir>/_browser_scrape` in browser mode). |
-| `--browser <path>`       | Use a specific Playwright Chromium executable.                                                |
-| `--cdp-url <url>`        | CDP endpoint for CloakBrowser/shared-browser mode.                                            |
-| `--browser-scrape`       | Scrape Cambridge GO in a browser instead of local userdata.                                   |
-| `--url <reader-url>`     | Cambridge GO reader URL to scrape directly (skips the account scan).                          |
-| `--email <address>`      | Cambridge GO email for browser scraping.                                                      |
-| `--password <secret>`    | Cambridge GO password for browser scraping.                                                   |
-| `--page-timeout-ms <ms>` | Per-page navigation timeout (`20000` local, `30000` browser).                                 |
-| `--max-pages <count>`    | Render only the first N pages of each selected book.                                          |
-| `--concurrency <count>`  | Number of local-blob books to process in parallel (`1`).                                      |
-| `--keep-extracted`       | Keep extracted book files after rendering.                                                    |
-| `--no-tui`               | Disable the interactive selection and progress UI.                                            |
-| `--help`                 | Show CLI help.                                                                                |
+| Option                   | Description                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `--userdata <path>`      | Override the Cambridge Reader userdata root (local-blob mode).                                         |
+| `--app-name <name>`      | Override the app name used during default userdata discovery.                                          |
+| `--isbn <isbn>`          | Restrict local-blob work to specific ISBNs (repeatable); ignored in browser mode.                      |
+| `--outdir <path>`        | Write PDFs here and skip the output-folder prompt. Hidden in Docker, but overrides its `/out` default. |
+| `--workdir <path>`       | Override the temp dir (`<outdir>/_extracted`, or `<outdir>/_browser_scrape` in browser mode).          |
+| `--browser <path>`       | Use a specific Playwright Chromium executable.                                                         |
+| `--cdp-url <url>`        | CDP endpoint for CloakBrowser/shared-browser mode.                                                     |
+| `--browser-scrape`       | Scrape Cambridge GO in a browser instead of local userdata.                                            |
+| `--url <reader-url>`     | Cambridge GO reader URL to scrape directly (skips the account scan).                                   |
+| `--email <address>`      | Cambridge GO email for browser scraping.                                                               |
+| `--password <secret>`    | Cambridge GO password for browser scraping.                                                            |
+| `--page-timeout-ms <ms>` | Per-page navigation timeout (`20000` local, `30000` browser).                                          |
+| `--max-pages <count>`    | Render only the first N pages of each selected book.                                                   |
+| `--concurrency <count>`  | Number of local-blob books to process in parallel (`1`).                                               |
+| `--keep-extracted`       | Keep extracted book files after rendering.                                                             |
+| `--no-tui`               | Disable the interactive selection and progress UI.                                                     |
+| `--help`                 | Show CLI help.                                                                                         |
 
 ## Environment variables
 
-| Variable                                                                | Purpose                                                                          |
-| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `CAMBRIDGE_GO_EMAIL` / `CAMBRIDGE_GO_PASSWORD`                          | Browser-mode login (overridden by `--email` / `--password`).                     |
-| `CLOAKBROWSER_CDP_URL`                                                  | Same as `--cdp-url`; also triggers browser mode.                                 |
-| `CAMBRIDGE_READER_SCRAPER_DOCKER=1`                                     | Docker-mode behavior: browser mode by default, `/out` output, `--outdir` hidden. |
-| `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` / `CHROMIUM_PATH` / `CHROME_PATH` | Explicit browser executable for auto-detection.                                  |
-| `CAMBRIDGE_READER_SCRAPER_ASSET_HOST`                                   | Override the LAN host used when serving remote-book assets to the renderer.      |
-| `XDG_CONFIG_HOME` / `XDG_DATA_HOME`                                     | Linux userdata discovery roots.                                                  |
-| `LOCALAPPDATA`                                                          | Windows userdata discovery root and `ms-playwright` cache location.              |
+| Variable                                                                | Purpose                                                                                  |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `CAMBRIDGE_GO_EMAIL` / `CAMBRIDGE_GO_PASSWORD`                          | Browser-mode login (overridden by `--email` / `--password`).                             |
+| `CLOAKBROWSER_CDP_URL`                                                  | Same as `--cdp-url`; also triggers browser mode.                                         |
+| `CAMBRIDGE_READER_SCRAPER_DOCKER=1`                                     | Docker-mode behavior: browser mode by default, `/out` default output, `--outdir` hidden. |
+| `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` / `CHROMIUM_PATH` / `CHROME_PATH` | Explicit browser executable for auto-detection.                                          |
+| `CAMBRIDGE_READER_SCRAPER_ASSET_HOST`                                   | Override the LAN host used when serving remote-book assets to the renderer.              |
+| `XDG_CONFIG_HOME` / `XDG_DATA_HOME`                                     | Linux userdata discovery roots.                                                          |
+| `LOCALAPPDATA`                                                          | Windows userdata discovery root and `ms-playwright` cache location.                      |
 
 ## Output layout
 

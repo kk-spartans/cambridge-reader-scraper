@@ -25,8 +25,8 @@ cambridge-reader-scraper reconstruct --browser-scrape --email you@example.com --
 ```
 
 ```bash
-CAMBRIDGE_GO_EMAIL=you@example.com
-CAMBRIDGE_GO_PASSWORD=your-password
+export CAMBRIDGE_GO_EMAIL=you@example.com
+export CAMBRIDGE_GO_PASSWORD=your-password
 ```
 
 If the session is already logged in, no credentials are needed. If login is required
@@ -65,8 +65,8 @@ its own Chromium. This is how Docker runs (CloakBrowser sidecar at
 cambridge-reader-scraper reconstruct --browser-scrape --cdp-url http://127.0.0.1:9223
 ```
 
-When `--cdp-url` is set, `--browser` is ignored unless you pass an explicit path —
-the remote browser is used as-is.
+When CDP is configured via `--cdp-url` or `CLOAKBROWSER_CDP_URL`, `--browser` is
+ignored, even with an explicit path. The remote browser is used as-is.
 
 ## Docker
 
@@ -79,7 +79,9 @@ cd scraper
 curl -fsSLO https://raw.githubusercontent.com/kk-spartans/cambridge-reader-scraper/main/devops/docker-compose.yml
 ```
 
-```bash
+Create `.env` alongside `docker-compose.yml`:
+
+```dotenv
 CAMBRIDGE_GO_EMAIL=you@example.com
 CAMBRIDGE_GO_PASSWORD=your-password
 ```
@@ -90,9 +92,12 @@ docker compose run --rm scraper
 
 Notes:
 
-- Output is always `/out` (your `./out` volume); `--outdir` is hidden in Docker help.
-- `CLOAKBROWSER_CDP_URL` is pre-set to the sidecar; extra flags still work, e.g.
-  `docker compose run --rm scraper inspect --no-tui`.
+- Output defaults to `/out` (your `./out` volume). An explicit `--outdir` overrides
+  it, though the option is hidden in Docker help; use a mounted directory to keep output.
+- `CLOAKBROWSER_CDP_URL` is pre-set to the sidecar.
+- Run the image without extra arguments. It defines the CLI as its command, not an
+  entrypoint, so appending a subcommand or flag replaces the CLI instead of passing
+  arguments to it. Use the local CLI for custom subcommands and flags.
 - CloakBrowser listens on `127.0.0.1:${CLOAKBROWSER_CDP_PORT:-9223}`. Optional env:
   `CLOAKBROWSER_LICENSE_KEY`, `CLOAKBROWSER_FETCH_WIDEVINE`.
 - `UID`/`GID` set file ownership of `./out`.
