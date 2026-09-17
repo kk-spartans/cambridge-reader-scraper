@@ -1,3 +1,17 @@
+# [1.6.0](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.5.3...v1.6.0) (2026-09-17)
+
+
+### Features
+
+* scrape supplementary audio/video media files alongside books ([#23](https://github.com/kk-spartans/cambridge-reader-scraper/issues/23)) ([d9e33ee](https://github.com/kk-spartans/cambridge-reader-scraper/commit/d9e33ee109c803736bfccff72527bbbb29716d9e)), closes [#22](https://github.com/kk-spartans/cambridge-reader-scraper/issues/22)
+
+## [1.5.3](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.5.2...v1.5.3) (2026-09-17)
+
+
+### Bug Fixes
+
+* create world-writable /tmp and bundle CA certs in nix docker image ([eb9d453](https://github.com/kk-spartans/cambridge-reader-scraper/commit/eb9d453f4ee427a18e44ba3e65213dbacd5b8148)), closes [#21](https://github.com/kk-spartans/cambridge-reader-scraper/issues/21)
+
 ## [1.5.2](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.5.1...v1.5.2) (2026-06-26)
 
 

@@ -414,6 +414,7 @@ async function discoverRemoteBook(params: {
         title: metadata.title,
         isbn: metadata.isbn,
         pagePaths: metadata.pagePaths,
+        mediaPaths: metadata.mediaPaths,
         opfPath: metadata.opfPath,
         tocPath: metadata.tocPath,
         navPath: metadata.navPath,
@@ -446,6 +447,7 @@ export async function runBrowserScrape(params: {
   cdpUrl?: string;
   navigationTimeoutMs: number;
   maxPages?: number;
+  skipMedia?: boolean;
   emit: (update: ProgressUpdate) => void;
   log?: BrowserLog;
 }): Promise<ReconstructionSummary> {
@@ -497,7 +499,7 @@ export async function runBrowserScrape(params: {
 
   try {
     params.log?.(`Rendering ${scopedBook.pagePaths.length} page(s)...`);
-    await renderRemoteBookToPdf({
+    const { mediaFiles } = await renderRemoteBookToPdf({
       remoteBookBaseUrl,
       book: scopedBook,
       browserExecutablePath: params.browserPath,
@@ -508,6 +510,7 @@ export async function runBrowserScrape(params: {
       outputPdfPath,
       navigationTimeoutMs: params.navigationTimeoutMs,
       tempRoot: params.tempRoot,
+      skipMedia: params.skipMedia,
       onProgress: (progress) => {
         params.emit({
           isbn: progressId,
@@ -519,12 +522,18 @@ export async function runBrowserScrape(params: {
       },
     });
 
+    if (!params.skipMedia && mediaFiles.length) {
+      params.log?.(`Saved ${mediaFiles.length} media file(s) alongside the PDF.`);
+    } else if (!params.skipMedia && scopedBook.mediaPaths.length) {
+      params.log?.("No media files were downloaded for this book.");
+    }
+
     if (readerPage) {
       await ignoreSlowClose(() => readerPage.close());
     }
     await ignoreSlowClose(() => sharedBrowser.close());
 
-    return { succeeded: [outputPdfPath], failed: [] };
+    return { succeeded: [outputPdfPath], failed: [], mediaFiles };
   } catch (error) {
     if (readerPage) {
       await ignoreSlowClose(() => readerPage.close());
@@ -542,6 +551,7 @@ export async function runBrowserScrape(params: {
     return {
       succeeded: [],
       failed: [{ isbn: scopedBook.isbn, title: scopedBook.title, error: message }],
+      mediaFiles: [],
     };
   }
 }

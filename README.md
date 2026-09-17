@@ -27,6 +27,8 @@ docker compose run --rm scraper
 
 The scraper starts CloakBrowser automatically, logs into Cambridge GO, shows a book picker, and writes PDFs to `./out`. I know it's slow, will work on it later.
 
+Supplementary audio/video files declared in the book manifest (or found alongside the pages) are saved next to each PDF in a `<book>_media/` folder. Pass `--skip-media` to skip them.
+
 ## Development
 
 Requires [devenv](https://devenv.sh), [Nix](https://nixos.org), and Docker.

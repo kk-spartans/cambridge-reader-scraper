@@ -330,6 +330,7 @@ for (const renderPath of ["local archive", "remote context"]) {
       title: "Reading order fixture",
       isbn: "fixture",
       pagePaths: ["page.html"],
+      mediaPaths: [],
       opfPath: "content.opf",
       viewport,
       entryCount: 1,
