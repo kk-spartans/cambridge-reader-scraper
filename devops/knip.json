@@ -1,6 +1,13 @@
 {
   "$schema": "https://knip.dev/schema.json",
-  "project": ["src/**/*.{ts,tsx}", "devops/*.ts"],
+  "workspaces": {
+    ".": {
+      "project": ["src/**/*.{ts,tsx}", "devops/*.ts"]
+    },
+    "docs": {
+      "entry": ["source.config.ts"]
+    }
+  },
   "ignoreBinaries": ["gitleaks", "usage"],
   "ignoreDependencies": [
     "@e18e/cli",

@@ -1,0 +1,118 @@
+---
+title: Usage
+description: Inspect books, pick titles, and control how PDFs are rendered.
+---
+
+## Main commands
+
+```bash
+cambridge-reader-scraper inspect
+cambridge-reader-scraper reconstruct
+cambridge-reader-scraper pdf
+```
+
+`pdf` is just an alias for `reconstruct`. With no command, the CLI runs `reconstruct`.
+`inspect` and `reconstruct`/`pdf` automatically switch to browser mode when you pass
+`--browser-scrape`, `--cdp-url`, or `--url`, when `CLOAKBROWSER_CDP_URL` is set, or when
+running inside Docker.
+
+## Inspect local books
+
+```bash
+cambridge-reader-scraper inspect
+```
+
+This prints every detected book blob: ISBN, title, blob name and path, entry count,
+spine page count, viewport size, and whether the encrypted tail marker is present.
+
+In browser mode, `inspect` lists your Cambridge GO account books instead:
+
+```bash
+cambridge-reader-scraper inspect --browser-scrape --email you@example.com
+```
+
+## Reconstruct PDFs from local blobs
+
+```bash
+cambridge-reader-scraper reconstruct
+```
+
+By default the CLI:
+
+1. Detects Cambridge Reader userdata automatically (`--userdata` or `--app-name` override it).
+2. Opens the TUI book picker when stdin/stdout are interactive.
+3. Prompts for the output folder if `--outdir` is missing (defaults to `out`, `/out` in Docker).
+4. Extracts each book under `<outdir>/_extracted` (override with `--workdir`).
+5. Renders selected books into PDFs with a Playwright Chromium build.
+
+## Scrape Cambridge GO in the browser
+
+```bash
+cambridge-reader-scraper reconstruct --browser-scrape
+```
+
+This scans your Cambridge GO resources, lets you pick books in the TUI, then renders
+each one to PDF. See the [browser scraping guide](/docs/browser-scraping) for
+credentials, CloakBrowser CDP mode, and single-URL scraping.
+
+## The TUI
+
+When stdin and stdout are both TTYs (and `--no-tui` is not passed):
+
+- The book picker supports type-to-search filtering, arrow-key navigation,
+  `Space` to multi-select, `Enter` to confirm, and `Esc` to clear the search.
+- Reconstruction shows a live per-book progress screen (`extract` / `render` /
+  `process` / `done` / `error`).
+- The output-directory prompt accepts `Enter` to confirm, `Esc` to reset,
+  and `Ctrl+C` to cancel.
+
+Pass `--no-tui` (or pipe stdin/stdout) to run non-interactively: the picker selects
+everything (or the `--isbn` matches) and progress goes to plain log lines.
+
+## Useful examples
+
+Render specific ISBNs (repeat `--isbn` for more than one):
+
+```bash
+cambridge-reader-scraper reconstruct --isbn 9781000000000 --outdir ./pdfs
+```
+
+Disable the TUI for scripting:
+
+```bash
+cambridge-reader-scraper reconstruct --no-tui --outdir ./pdfs
+```
+
+Limit pages while debugging:
+
+```bash
+cambridge-reader-scraper reconstruct --max-pages 10 --keep-extracted
+```
+
+Process books in parallel:
+
+```bash
+cambridge-reader-scraper reconstruct --concurrency 4 --outdir ./pdfs
+```
+
+Use a custom Cambridge Reader userdata folder:
+
+```bash
+cambridge-reader-scraper inspect --userdata ./userdata
+```
+
+```bash
+cambridge-reader-scraper reconstruct --app-name "Cambridge Reader" --outdir ./pdfs
+```
+
+Scrape one Cambridge GO book directly by URL:
+
+```bash
+cambridge-reader-scraper reconstruct --url "https://www.cambridge.org/go/ereader/read/..." --outdir ./pdfs
+```
+
+Drive a shared CloakBrowser instance instead of launching Chromium:
+
+```bash
+cambridge-reader-scraper reconstruct --browser-scrape --cdp-url http://127.0.0.1:9223
+```

@@ -1,0 +1,116 @@
+---
+title: Browser Scraping
+description: Scrape Cambridge GO through a real browser, locally or with Docker and CloakBrowser.
+---
+
+Browser mode renders books straight from Cambridge GO instead of local Reader blobs.
+It is the only mode available inside Docker, and the default there.
+
+## When browser mode activates
+
+`inspect` and `reconstruct`/`pdf` use browser mode when any of these is true:
+
+- `--browser-scrape` is passed.
+- `--cdp-url` is passed or `CLOAKBROWSER_CDP_URL` is set.
+- `--url` is passed.
+- The CLI runs inside Docker (`/.dockerenv` exists or `CAMBRIDGE_READER_SCRAPER_DOCKER=1`).
+
+## Credentials
+
+Browser mode logs into Cambridge GO with the resources page. Provide credentials via
+flags or environment variables (flags win when both are set):
+
+```bash
+cambridge-reader-scraper reconstruct --browser-scrape --email you@example.com --password your-password
+```
+
+```bash
+export CAMBRIDGE_GO_EMAIL=you@example.com
+export CAMBRIDGE_GO_PASSWORD=your-password
+```
+
+If the session is already logged in, no credentials are needed. If login is required
+and they are missing, the CLI errors out telling you to pass `--email`/`--password`
+or set the env vars.
+
+## Account scan and book picker
+
+Without `--url`, the CLI opens `https://www.cambridge.org/go/resources`, walks every
+resource page, resolves each book card to its `/go/ereader/read/` URL, and shows the
+TUI picker. With `--no-tui` (or without a TTY), it selects all discovered books.
+
+```bash
+cambridge-reader-scraper inspect --browser-scrape
+```
+
+```bash
+cambridge-reader-scraper reconstruct --browser-scrape --no-tui --outdir ./pdfs
+```
+
+## Single-URL scraping
+
+Skip the account scan entirely by passing one reader URL:
+
+```bash
+cambridge-reader-scraper reconstruct --url "https://www.cambridge.org/go/ereader/read/..." --outdir ./pdfs
+```
+
+## CloakBrowser via CDP
+
+Point the CLI at a shared browser over Chrome DevTools Protocol instead of launching
+its own Chromium. This is how Docker runs (CloakBrowser sidecar at
+`http://cloakbrowser:9222`):
+
+```bash
+cambridge-reader-scraper reconstruct --browser-scrape --cdp-url http://127.0.0.1:9223
+```
+
+When CDP is configured via `--cdp-url` or `CLOAKBROWSER_CDP_URL`, `--browser` is
+ignored, even with an explicit path. The remote browser is used as-is.
+
+## Docker
+
+The compose file wires three services: `scraper`, `cloakbrowser`, and a one-shot
+`output` container that prepares `./out` with the right ownership.
+
+```bash
+mkdir scraper
+cd scraper
+curl -fsSLO https://raw.githubusercontent.com/kk-spartans/cambridge-reader-scraper/main/devops/docker-compose.yml
+```
+
+Create `.env` alongside `docker-compose.yml`:
+
+```dotenv
+CAMBRIDGE_GO_EMAIL=you@example.com
+CAMBRIDGE_GO_PASSWORD=your-password
+```
+
+```bash
+docker compose run --rm scraper
+```
+
+Notes:
+
+- Output defaults to `/out` (your `./out` volume). An explicit `--outdir` overrides
+  it, though the option is hidden in Docker help; use a mounted directory to keep output.
+- `CLOAKBROWSER_CDP_URL` is pre-set to the sidecar.
+- Run the image without extra arguments. It defines the CLI as its command, not an
+  entrypoint, so appending a subcommand or flag replaces the CLI instead of passing
+  arguments to it. Use the local CLI for custom subcommands and flags.
+- CloakBrowser listens on `127.0.0.1:${CLOAKBROWSER_CDP_PORT:-9223}`. Optional env:
+  `CLOAKBROWSER_LICENSE_KEY`, `CLOAKBROWSER_FETCH_WIDEVINE`.
+- `UID`/`GID` set file ownership of `./out`.
+
+## Browser-mode knobs
+
+| Flag                | Default                    | Notes                                                                  |
+| ------------------- | -------------------------- | ---------------------------------------------------------------------- |
+| `--page-timeout-ms` | `30000`                    | Navigation timeout for GO pages (local-blob mode defaults to `20000`). |
+| `--max-pages`       | all pages                  | Render only the first N pages of each book.                            |
+| `--workdir`         | `<outdir>/_browser_scrape` | Temp dir for downloaded book assets.                                   |
+| `--browser`         | auto-detected              | Ignored when `--cdp-url` connects to a shared browser.                 |
+
+Rendering downloads each book's pages and assets through the logged-in browser
+context, then prints them to PDF at the book's native viewport size. Transient
+Cloudflare/5xx error pages are retried with backoff before the CLI gives up.
