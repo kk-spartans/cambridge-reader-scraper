@@ -38,7 +38,7 @@ stdenv.mkDerivation {
 
   pnpmDeps = fetchPnpmDeps {
     inherit pname version src;
-    hash = "sha256-QKwKo2HcBkRCEYUAm/IEowzJjOLJT9GdJBD5MDelkng=";
+    hash = "sha256-osRuq4cs7MBN9xxrO8Jv3ZX5XzD+fp88whxtBT3vKhk=";
     fetcherVersion = 4;
   };
 
@@ -53,6 +53,7 @@ stdenv.mkDerivation {
     runHook preBuild
     export SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt
     export CAMBRIDGE_READER_SCRAPER_DOCKER=1
+    pnpm --filter docs exec fumadocs-mdx
     pnpm run check
     runHook postBuild
   '';
@@ -60,8 +61,12 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
     export SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt
-    pnpm install --prod --offline --frozen-lockfile
+    export CI=true
     mkdir -p $out/bin $out/lib/cambridge-reader-scraper
+    pnpm install --prod --offline --frozen-lockfile
+    # Drop the workspace link to the docs package; it is not shipped with the CLI
+    # and would be a dangling symlink in the output.
+    rm -rf node_modules/.pnpm/node_modules/docs
     cp -r dist package.json $out/lib/cambridge-reader-scraper/
     cp -r node_modules $out/lib/cambridge-reader-scraper/node_modules
     ln -s $out/lib/cambridge-reader-scraper/dist/cambridge-reader-scraper $out/bin/cambridge-reader-scraper
