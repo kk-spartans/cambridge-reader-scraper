@@ -1,3 +1,10 @@
+## [1.7.2](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.7.1...v1.7.2) (2026-10-21)
+
+
+### Bug Fixes
+
+* repair nix docker build so CI passes ([3e1c93c](https://github.com/kk-spartans/cambridge-reader-scraper/commit/3e1c93cc4b6922c7a6cc81bf7861fe9058c6a0a3))
+
 ## [1.7.1](https://github.com/kk-spartans/cambridge-reader-scraper/compare/v1.7.0...v1.7.1) (2026-09-17)
 
 
